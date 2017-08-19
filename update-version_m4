@@ -1,0 +1,16 @@
+#!/bin/sh
+
+#
+# This file is part of FIG: Facility for Interactive Generation of figures.
+#
+#	update-version_m4: Set the version information in version.m4.
+#	Author: Thomas Loimer <thomas.loimer@tuwien.ac.at>, 2016
+#
+
+if test "`git describe --abbrev=1`" != \
+	"`sed -n '/^m4_def.*XFIG_VERS/ {s/.*, *\[\(.*\)\])/\1/;p}' version.m4`"
+then
+    sed  -i "\
+	/^m4_define(\[\{0,1\}XFIG_VERSION/ s/\(.*, *\[\).*\]/\1`git describe --abbrev=1`]/
+	/^m4_define(\[\{0,1\}RELEASEDATE/ s/\(.*, *\[\).*\]/\1`git show -s --pretty=%cd --date=format:'%b %Y'`]/" version.m4
+fi

@@ -1,0 +1,12 @@
+# @configure_input@
+
+# use atlocal.in to pass variables from configure, by AC_SUBST,
+# to the testsuite.
+if test "x@abs_top_builddir@" = "x@abs_top_srcdir@"; then
+  PATH=@abs_top_builddir@/src:$PATH
+else
+  PATH=@abs_top_builddir@/src:@abs_top_srcdir@/src:$PATH
+fi
+
+PACKAGE_VERSION="@PACKAGE_VERSION@"
+# FGREP='@FGREP@'

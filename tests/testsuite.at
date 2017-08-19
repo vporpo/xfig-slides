@@ -1,0 +1,22 @@
+AT_INIT
+AT_COLOR_TESTS
+AT_TESTED(xfig)
+
+AT_BANNER([Rudimentary tests])
+
+AT_SETUP([Report version])
+AT_KEYWORDS(version)
+
+# Use atlocal to get variables from ./configure
+# Use _UNQUOTED, to use variables in [stdout], [stderr]
+AT_CHECK_UNQUOTED([xfig -v],0,[],
+	[Xfig $PACKAGE_VERSION
+])
+AT_CLEANUP
+
+AT_SETUP([Validate desktop file])
+AT_KEYWORDS(xfig.desktop)
+
+AT_SKIP_IF([! desktop-file-validate --help])
+AT_CHECK([desktop-file-validate $top_srcdir/xfig.desktop],0,[],[])
+AT_CLEANUP
