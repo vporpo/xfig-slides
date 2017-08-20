@@ -415,6 +415,9 @@ init_update_object(F_line *p, int type, int x, int y, int px, int py)
     reset_cursor();
     if (!dontupdate)
 	put_msg("Object(s) UPDATED");
+	#ifdef SLIDES_SUPPORT
+	update_slides ();
+	#endif
 }
 
 void update_ellipse(F_ellipse *ellipse)
@@ -429,6 +432,12 @@ void update_ellipse(F_ellipse *ellipse)
     up_part(ellipse->pen_color, cur_pencolor, I_PEN_COLOR);
     up_part(ellipse->fill_color, cur_fillcolor, I_FILL_COLOR);
     up_depth_part(ellipse->depth, cur_depth);
+    #ifdef SLIDES_SUPPORT
+    if ((cur_updatemask & I_SLIDES) && cur_slides) {
+        free_slides(ellipse->slides);
+        up_part(ellipse->slides, copy_slides (cur_slides), I_SLIDES);
+    }
+    #endif
     fix_fillstyle(ellipse);	/* make sure it has legal fill style if color changed */
     /* updated object will be redisplayed by init_update_xxx() */
 }
@@ -446,6 +455,12 @@ void update_arc(F_arc *arc)
     up_part(arc->pen_color, cur_pencolor, I_PEN_COLOR);
     up_part(arc->fill_color, cur_fillcolor, I_FILL_COLOR);
     up_depth_part(arc->depth, cur_depth);
+    #ifdef SLIDES_SUPPORT
+    if ((cur_updatemask & I_SLIDES) && cur_slides) {
+        free_slides(arc->slides);
+        up_part(arc->slides, copy_slides (cur_slides), I_SLIDES);
+    }
+    #endif
     /* check new type - if pie-wedge and there are any arrows, delete them */
     if (arc->type == T_PIE_WEDGE_ARC) {
 	if (arc->for_arrow) {
@@ -482,6 +497,13 @@ void update_line(F_line *line)
 	/* only XBM pictures have color */
 	up_part(line->pen_color, cur_pencolor, I_PEN_COLOR);
     }
+	#ifdef SLIDES_SUPPORT
+	/* FIXME?: I don't understand the T_PIC_XBM */
+	if ((cur_updatemask & I_SLIDES) && cur_slides) {
+		free_slides(line->slides);
+		up_part(line->slides, copy_slides (cur_slides), I_SLIDES);
+	}
+	#endif
     up_depth_part(line->depth, cur_depth);
     /* only POLYLINES with more than one point may have arrow heads */
     if (line->type == T_POLYLINE && line->points->next != NULL)
@@ -515,6 +537,12 @@ void update_text(F_text *text)
     up_part(text->angle, cur_elltextangle*M_PI/180.0, I_ELLTEXTANGLE);
     up_part(text->color, cur_pencolor, I_PEN_COLOR);
     up_depth_part(text->depth, cur_depth);
+    #ifdef SLIDES_SUPPORT
+    if ((cur_updatemask & I_SLIDES) && cur_slides) {
+        free_slides(text->slides);
+        up_part(text->slides, copy_slides (cur_slides), I_SLIDES);
+    }
+    #endif
     size = textsize(lookfont(x_fontnum(psfont_text(text), text->font),
 			text->size), strlen(text->cstring), text->cstring);
     text->ascent = size.ascent;
@@ -537,6 +565,12 @@ void update_spline(F_spline *spline)
     up_part(spline->pen_color, cur_pencolor, I_PEN_COLOR);
     up_part(spline->fill_color, cur_fillcolor, I_FILL_COLOR);
     up_depth_part(spline->depth, cur_depth);
+    #ifdef SLIDES_SUPPORT
+    if ((cur_updatemask & I_SLIDES) && cur_slides) {
+        free_slides(spline->slides);
+        up_part(spline->slides, copy_slides (cur_slides), I_SLIDES);
+    }
+    #endif
     if (open_spline(spline))
 	up_arrow((F_line *)spline);
     fix_fillstyle(spline);	/* make sure it has legal fill style if color changed */
@@ -744,6 +778,14 @@ void update_compound(F_compound *compound)
 	update_texts(compound->texts);
 	update_compounds(compound->compounds);
     }
+    #ifdef SLIDES_SUPPORT
+    /* update slides for compound */
+    if ((cur_updatemask & I_SLIDES) && cur_slides) {
+        free_slides(compound->slides);
+        /* FIXME: memory leak. The original cur_slides is not freed. */
+        up_part(compound->slides, copy_slides (cur_slides), I_SLIDES);
+    }
+    #endif
     compound_bound(compound, &compound->nwcorner.x, &compound->nwcorner.y,
 		   &compound->secorner.x, &compound->secorner.y);
 }

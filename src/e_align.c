@@ -32,6 +32,9 @@
 #include "u_markers.h"
 #include "u_translate.h"
 #include "w_cursor.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 #include <limits.h>	/* INT_MAX, INT_MIN */
 
@@ -179,6 +182,10 @@ align_ellipse(void)
     for (e = cur_c->ellipses; e != NULL; e = e->next) {
 	if (!active_layer(e->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(e, O_ELLIPSE))
+	    continue;
+	#endif
 	ellipse_bound(e, &llx, &lly, &urx, &ury);
 	get_dx_dy();
 	translate_ellipse(e, dx, dy);
@@ -193,6 +200,10 @@ align_arc(void)
     for (a = cur_c->arcs; a != NULL; a = a->next) {
 	if (!active_layer(a->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(a, O_ARC))
+	    continue;
+	#endif
 	arc_bound(a, &llx, &lly, &urx, &ury);
 	get_dx_dy();
 	translate_arc(a, dx, dy);
@@ -207,6 +218,10 @@ align_line(void)
     for (l = cur_c->lines; l != NULL; l = l->next) {
 	if (!active_layer(l->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(l, O_POLYLINE))
+	    continue;
+	#endif
 	line_bound(l, &llx, &lly, &urx, &ury);
 	get_dx_dy();
 	translate_line(l, dx, dy);
@@ -221,6 +236,10 @@ align_spline(void)
     for (s = cur_c->splines; s != NULL; s = s->next) {
 	if (!active_layer(s->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(s, O_SPLINE))
+	    continue;
+	#endif
 	spline_bound(s, &llx, &lly, &urx, &ury);
 	get_dx_dy();
 	translate_spline(s, dx, dy);
@@ -235,6 +254,10 @@ align_compound(void)
     for (c = cur_c->compounds; c != NULL; c = c->next) {
 	if (!any_active_in_compound(c))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(c, O_COMPOUND))
+	    continue;
+	#endif
 	compound_bound(c, &llx, &lly, &urx, &ury);
 	get_dx_dy();
 	translate_compound(c, dx, dy);
@@ -250,6 +273,10 @@ align_text(void)
     for (t = cur_c->texts; t != NULL; t = t->next) {
 	if (!active_layer(t->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(t, O_TXT))
+	    continue;
+	#endif
 	text_bound(t, &llx, &lly, &urx, &ury,
 		   &dum,&dum,&dum,&dum,&dum,&dum,&dum,&dum);
 	get_dx_dy();

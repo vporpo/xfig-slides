@@ -221,7 +221,7 @@ place_lib_object_orig(int x, int y, unsigned int shift)
     dy = orig_put_y-y;
     translate_compound(new_c,dx,dy);
     /* remove it from the depths because it will be added when it is put in the main list */
-    remove_compound_depth(new_c);
+    remove_compound_depth(new_c IF_SLIDES_ARG(True));
     add_compound(new_c);
     set_modifiedflag();
     redisplay_compound(new_c);
@@ -243,7 +243,7 @@ place_lib_object(int x, int y, unsigned int shift)
     if (draw_box)
 	translate_compound(new_c,cur_x,cur_y);
     /* remove it from the depths because it will be added when it is put in the main list */
-    remove_compound_depth(new_c);
+    remove_compound_depth(new_c IF_SLIDES_ARG(True));
     add_compound(new_c);
     set_modifiedflag();
     redisplay_compound(new_c);
@@ -323,6 +323,6 @@ cancel_place_lib_obj(int x, int y, int shift)
     set_cursor(arrow_cursor);
     put_draw(ERASE);
     /* remove it from the depths */
-    remove_compound_depth(new_c);
+    remove_compound_depth(new_c IF_SLIDES_ARG(True));
 }
 

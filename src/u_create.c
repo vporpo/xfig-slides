@@ -34,6 +34,9 @@
 #include "w_cursor.h"
 #include "w_modepanel.h"
 #include "w_mousefun.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 static char	Err_mem[] = "Running out of memory.";
 
@@ -338,6 +341,9 @@ create_arc(void)
     a->cap_style = CAP_BUTT;
     a->direction = 0;
     a->angle = 0.0;
+    #ifdef SLIDES_SUPPORT
+    a->slides = get_new_object_slides ();
+    #endif
     return a;
 }
 
@@ -356,6 +362,9 @@ copy_arc(F_arc *a)
 
     /* do comments next */
     copy_comments(&a->comments, &arc->comments);
+    #ifdef SLIDES_SUPPORT
+    arc->slides = copy_slides (a->slides);
+    #endif
 
     if (a->for_arrow) {
 	if ((arrow = create_arrow()) == NULL) {
@@ -390,6 +399,9 @@ create_ellipse(void)
     e->tagged = 0;
     e->next = NULL;
     e->comments = NULL;
+    #ifdef SLIDES_SUPPORT
+    e->slides = get_new_object_slides ();
+    #endif
     return e;
 }
 
@@ -407,6 +419,9 @@ copy_ellipse(F_ellipse *e)
 
     /* do comments next */
     copy_comments(&e->comments, &ellipse->comments);
+    #ifdef SLIDES_SUPPORT
+    ellipse->slides = copy_slides (e->slides);
+    #endif
 
     return ellipse;
 }
@@ -430,6 +445,9 @@ create_line(void)
     l->points = NULL;
     l->radius = DEFAULT;
     l->comments = NULL;
+    #ifdef SLIDES_SUPPORT
+    l->slides = get_new_object_slides ();
+    #endif
     return l;
 }
 
@@ -445,6 +463,9 @@ create_pic(void)
     pic->mask = (Pixmap) 0;
     pic->new = False;
     pic->pic_cache = NULL;
+    #ifdef SLIDES_SUPPORT
+    pic->slides = get_new_object_slides ();
+    #endif
     return pic;
 }
 
@@ -485,6 +506,9 @@ copy_line(F_line *l)
 
     /* do comments next */
     copy_comments(&l->comments, &line->comments);
+    #ifdef SLIDES_SUPPORT
+    line->slides = copy_slides (l->slides);
+    #endif
 
     if (l->for_arrow) {
 	if ((arrow = create_arrow()) == NULL) {
@@ -556,6 +580,9 @@ create_spline(void)
     s->tagged = 0;
     s->next = NULL;
     s->comments = NULL;
+    #ifdef SLIDES_SUPPORT
+    s->slides = get_new_object_slides ();
+    #endif
     return s;
 }
 
@@ -574,6 +601,9 @@ copy_spline(F_spline *s)
 
     /* do comments next */
     copy_comments(&s->comments, &spline->comments);
+    #ifdef SLIDES_SUPPORT
+    spline->slides = copy_slides (s->slides);
+    #endif
 
     if (s->for_arrow) {
 	if ((arrow = create_arrow()) == NULL) {
@@ -626,6 +656,9 @@ create_text(void)
     t->comments = NULL;
     t->cstring = NULL;
     t->next = NULL;
+    #ifdef SLIDES_SUPPORT
+    t->slides = get_new_object_slides ();
+    #endif
     return t;
 }
 
@@ -655,6 +688,9 @@ copy_text(F_text *t)
 
     /* do comments next */
     copy_comments(&t->comments, &text->comments);
+    #ifdef SLIDES_SUPPORT
+    text->slides = copy_slides (t->slides);
+    #endif
 
     if ((text->cstring = new_string(strlen(t->cstring))) == NULL) {
 	free((char *) text);
@@ -688,10 +724,14 @@ create_compound(void)
     c->splines = NULL;
     c->texts = NULL;
     c->comments = NULL;
+    #ifndef SLIDES_SUPPORT
     c->parent = NULL;
+    #endif
     c->GABPtr = NULL;
     c->next = NULL;
-
+    #ifdef SLIDES_SUPPORT
+    c->slides = NULL;
+    #endif
     return c;
 }
 
@@ -720,6 +760,11 @@ copy_compound(F_compound *c)
 
     /* do comments first */
     copy_comments(&c->comments, &compound->comments);
+
+    #ifdef SLIDES_SUPPORT
+    /* copy slides */
+    compound->slides = copy_slides (c->slides);
+    #endif
 
     for (e = c->ellipses; e != NULL; e = e->next) {
 	if (NULL == (ee = copy_ellipse(e))) {
@@ -798,6 +843,9 @@ create_dimension_line(F_line *line, Boolean add_to_figure)
 	comp->comments = strdup("Dimension line:");
     }
 
+    #ifdef SLIDES_SUPPORT
+    comp->slides = copy_slides (line->slides);
+    #endif
     /* need two objects *on top of* the basic line */
     if (line->depth < 2) {
 	line->depth = 2;
@@ -829,6 +877,9 @@ create_dimension_line(F_line *line, Boolean add_to_figure)
 
     text = create_text();
     text->depth  = line->depth-2;
+    #ifdef SLIDES_SUPPORT
+    text->slides = copy_slides (line->slides);
+    #endif
     text->cstring = (char *) NULL;	/* the string will be put in later */
     text->color = cur_dimline_textcolor;
     text->font = cur_dimline_font;
@@ -847,6 +898,9 @@ create_dimension_line(F_line *line, Boolean add_to_figure)
     box = create_line();
     box->comments = strdup("text box");
     box->depth = line->depth-1;
+    #ifdef SLIDES_SUPPORT
+    box->slides = copy_slides (line->slides);
+    #endif
     box->type = T_POLYGON;
     box->style = SOLID_LINE;
     box->style_val = 0.0;

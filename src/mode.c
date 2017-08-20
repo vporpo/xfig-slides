@@ -96,6 +96,9 @@ char		batch_file[PATH_MAX];
 /*******************************************************************/
 
 char	       *lang_items[] = {
+	#ifdef SLIDES_SUPPORT
+	"fig",
+	#endif
 	"ps",
 	"eps",
 	"eps_ascii",

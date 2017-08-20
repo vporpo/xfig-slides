@@ -22,6 +22,16 @@
 #include "config.h"
 #endif
 
+/* Macro for hiding code when not supporting slides */
+#define COMMA ,
+#ifdef SLIDES_SUPPORT
+#define IF_SLIDES(X) X
+#else
+#define IF_SLIDES(X)
+#endif
+/* Macro for function arguments */
+#define IF_SLIDES_ARG(X) , X
+
 #ifdef ANCIENT /**************************************/
 
 /* For the X stuff, include only Xlib.h and Intrinsic.h here -

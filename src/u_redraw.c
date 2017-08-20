@@ -205,7 +205,7 @@ void redisplay_arcobject(F_arc *arcs, int depth)
 
     arc = arcs;
     while (arc != NULL && cp->cnt_arcs < cp->num_arcs) {
-	if (depth == arc->depth) {
+	if (depth == arc->depth IF_SLIDES(&& active_object_slides(arc, O_ARC))) {
 		draw_arc(arc, PAINT);
 		++cp->cnt_arcs;
 	    }
@@ -231,7 +231,7 @@ void redisplay_ellipseobject(F_ellipse *ellipses, int depth)
 
     ep = ellipses;
     while (ep != NULL && cp->cnt_ellipses < cp->num_ellipses) {
-	if (depth == ep->depth) {
+	if (depth == ep->depth IF_SLIDES(&& active_object_slides(ep, O_ELLIPSE))) {
 		draw_ellipse(ep, PAINT);
 		++cp->cnt_ellipses;
 	    }
@@ -257,7 +257,7 @@ void redisplay_lineobject(F_line *lines, int depth)
 
     lp = lines;
     while (lp != NULL && cp->cnt_lines < cp->num_lines) {
-	if (depth == lp->depth) {
+      if (depth == lp->depth IF_SLIDES(&& active_object_slides(lp, O_POLYLINE))) {
 		draw_line(lp, PAINT);
 		++cp->cnt_lines;
 	    }
@@ -282,7 +282,7 @@ void redisplay_splineobject(F_spline *splines, int depth)
 
     spline = splines;
     while (spline != NULL && cp->cnt_splines < cp->num_splines) {
-	if (depth == spline->depth) {
+	if (depth == spline->depth IF_SLIDES(&& active_object_slides (spline, O_SPLINE))) {
 		draw_spline(spline, PAINT);
 		++cp->cnt_splines;
 	    }
@@ -307,7 +307,7 @@ void redisplay_textobject(F_text *texts, int depth)
 
     text = texts;
     while (text != NULL && cp->cnt_texts < cp->num_texts) {
-	if (depth == text->depth) {
+	if (depth == text->depth IF_SLIDES(&& active_object_slides(text, O_TXT))) {
 	    draw_text(text, PAINT);
 	    ++cp->cnt_texts;
 	}

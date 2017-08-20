@@ -31,6 +31,9 @@
 #include "w_util.h"
 #include "u_print.h"
 
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 static int	exec_prcmd(char *command, char *msg);
 static char	layers[PATH_MAX];
@@ -207,6 +210,9 @@ print_to_file(char *file, char *lang, float mag, int xoff, int yoff,
     char	   *outfile, *name, *real_lang;
     char	   *suf;
     int     fd;
+    #ifdef SLIDES_SUPPORT
+    extern char* override_figname; /* w_export.c */
+    #endif
 
     /* if file exists, ask if ok */
     if (!ok_to_write(file, "EXPORT"))
@@ -229,15 +235,32 @@ print_to_file(char *file, char *lang, float mag, int xoff, int yoff,
     }
     end_write_tmpfile();
 
+    #ifdef SLIDES_SUPPORT
+    if (override_figname)
+      snprintf(tmp_fig_file, PATH_MAX, "%s", override_figname);
+    #endif
     /* if the user only wants the active layers, build that list */
     build_layer_list(layers);
 
     outfile = strdup(shell_protect_string(file));
-    if (strlen(cur_filename) == 0)
-	name = strdup(file);
-    else
-	name = strdup(shell_protect_string(cur_filename));
 
+    #ifdef SLIDES_SUPPORT
+    if (override_figname) {
+      FILE *fp;
+      name = strdup (override_figname);
+      fp = fopen (name, "r");
+      if (fp == NULL)
+        export_slide_file_not_found = strdup (name);
+      else
+        fclose (fp);
+    } else
+    #endif
+    {
+     if (strlen(cur_filename) == 0)
+        name = strdup(file);
+      else
+        name = strdup(shell_protect_string(cur_filename));
+    }
     put_msg("Exporting to file \"%s\" in %s mode ...     ",
 	    file, appres.landscape ? "LANDSCAPE" : "PORTRAIT");
     app_flush();		/* make sure message gets displayed */

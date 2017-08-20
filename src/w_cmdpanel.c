@@ -67,6 +67,9 @@
 #endif  /* I18N */
 
 #include <X11/IntrinsicP.h> /* XtResizeWidget() */
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 /* internal features and definitions */
 
@@ -166,6 +169,9 @@ menu_def file_menu_items[] = {
 	{"Save As...  (Meta-A)",	5, popup_saveas_panel, False},
 	{"Export...   (Meta-X) (Quick = Shift-Meta-X)",	0, popup_export_panel, False},
 	{"Print...    (Meta-P) (Quick = Shift-Meta-P)",	0, popup_print_panel, False},
+#ifdef SLIDES_SUPPORT
+	{"Slides...   ",	-1, popup_slides_panel, False},	
+#endif
 	{"Exit        (Meta-Q)",	1, quit, False},
 	{(char *) -1,			0, NULL, False}, /* makes a line separator followed by */
 	{NULL, 0, NULL, False},				/* recently loaded files */
@@ -185,7 +191,10 @@ menu_def edit_menu_items[] = {
     };
 
 #define PAGE_BRD_MSG	"Show page borders   (Meta-B)"
-#define DPTH_MGR_MSG	"Show depth manager          "
+#define DPTH_MGR_MSG	"Show depth" IF_SLIDES(" & slides") " manager "
+#ifdef SLIDES_SUPPORT
+#define SLDS_MGR_MSG	"Show slides manager         "
+#endif
 #define INFO_BAL_MSG	"Show info balloons  (Meta-Y)"
 #define LINE_LEN_MSG	"Show line lengths   (Meta-L)"
 #define VRTX_NUM_MSG	"Show vertex numbers         "
@@ -718,7 +727,7 @@ cancel_paste(void)
     cur_mode = F_NULL;
     paste_draw(ERASE);
     /* remove it from the depths */
-    remove_compound_depth(new_c);
+    remove_compound_depth(new_c IF_SLIDES_ARG(True));
 }
 
 static void
@@ -819,6 +828,9 @@ new(Widget w, XtPointer closure, XtPointer call_data)
     set_action(F_LOAD);
     update_cur_filename("");
     put_msg("Immediate Undo will restore the figure");
+#ifdef SLIDES_SUPPORT
+    update_slides ();
+#endif
     redisplay_canvas();
 }
 
@@ -932,6 +944,9 @@ typedef struct _global {
     Boolean	autorefresh;		/* autorefresh mode */
     Boolean	show_pageborder;	/* show page borders in red on canvas */
     Boolean	showdepthmanager;	/* show depth manager panel */
+#ifdef SLIDES_SUPPORT
+    Boolean	showslidesmanager;	/* show slides manager panel */
+#endif
     Boolean	showballoons;		/* show popup messages */
     Boolean	showlengths;		/* length/width lines */
     Boolean	shownums;		/* print point numbers  */
@@ -951,6 +966,9 @@ show_global_settings(Widget w)
 	global.autorefresh = appres.autorefresh;
 	global.show_pageborder = appres.show_pageborder;
 	global.showdepthmanager = appres.showdepthmanager;
+#ifdef SLIDES_SUPPORT
+	global.showslidesmanager = appres.showslidesmanager;
+#endif
 	global.showballoons = appres.showballoons;
 	global.showlengths = appres.showlengths;
 	global.shownums = appres.shownums;
@@ -1017,9 +1035,14 @@ void create_global_panel(Widget w)
 	below = CreateCheckbutton("Show page borders       ", "page_borders",
 			global_panel, below, NULL, MANAGE, LARGE_CHK,
 			&global.show_pageborder, 0,0);
-	below = CreateCheckbutton("Show depth manager      ", "depth_manager",
+	below = CreateCheckbutton("Show depth" IF_SLIDES(" & slides") " manager ", "depth_manager",
 			global_panel, below, NULL, MANAGE, LARGE_CHK,
 			&global.showdepthmanager, 0,0);
+#ifdef SLIDES_SUPPORT
+	below = CreateCheckbutton("Show slides manager      ", "slides_manager",
+			global_panel, below, NULL, MANAGE, LARGE_CHK,
+			&global.showslidesmanager, 0,0);
+#endif
 	show_bal = CreateCheckbutton("Show info balloons      ", "show_balloons",
 			global_panel, below, NULL, MANAGE, LARGE_CHK,
 			&global.showballoons,0,0);
@@ -1670,6 +1693,9 @@ refresh_view_menu(void)
 
     refresh_view_menu_item(PAGE_BRD_MSG, appres.show_pageborder);
     refresh_view_menu_item(DPTH_MGR_MSG, appres.showdepthmanager);
+#ifdef SLIDES_SUPPORT
+    refresh_view_menu_item(SLDS_MGR_MSG, appres.showslidesmanager);
+#endif
     refresh_view_menu_item(INFO_BAL_MSG, appres.showballoons);
     refresh_view_menu_item(LINE_LEN_MSG, appres.showlengths);
     refresh_view_menu_item(VRTX_NUM_MSG, appres.shownums);

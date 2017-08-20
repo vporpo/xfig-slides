@@ -56,6 +56,9 @@
 #include "w_zoom.h"
 #include "w_snap.h"
 #include "f_load.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 /* input extensions for an input tablet */
 #ifdef USE_TAB
@@ -1082,6 +1085,9 @@ void main(int argc, char **argv)
     init_ind_panel(tool_form);	/* bottom indicator panel */
     init_snap_panel(tool_form);	/* snap mode -- must precede the depth panel */
     init_depth_panel(tool_form);/* active layer panel to the right of the side ruler */
+#ifdef SLIDES_SUPPORT
+    init_slides_side_panel(tool_form);
+#endif
     init_manage_style_panel();	/* the named style panel */
 
     ichild = 0;
@@ -1210,6 +1216,9 @@ void main(int argc, char **argv)
 
     setup_ind_panel();
     setup_depth_panel();	/* resize layer form now that we have the height of the rest */
+#ifdef SLIDES_SUPPORT
+    setup_slides_side_panel ();
+#endif
 
     /* now that all the windows are up, make a busy cursor */
     set_temp_cursor(wait_cursor);
@@ -1343,6 +1352,9 @@ void main(int argc, char **argv)
     if (strlen(cur_filename))
 	load_file(cur_filename, 0, 0);
 
+    #ifdef SLIDES_SUPPORT
+    setup_slides_2 ();
+    #endif
     /* reset the cursor */
     reset_cursor();
 

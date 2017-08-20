@@ -103,6 +103,12 @@ void undo_delete_arrowhead (void);
 void undo_convert (void);
 void undo_open_close (void);
 void undo_join_split (void);
+#ifdef SLIDES_SUPPORT
+void undo_kick_slides(void);
+void undo_new_slide(void);
+void undo_del_slide(void);
+void undo_swap_slide(void);
+#endif
 void set_action_object (int action, int object);
 void swap_newp_lastp (void);
 
@@ -159,6 +165,20 @@ undo(void)
       case F_SPLIT:
 	undo_join_split();
 	break;
+#ifdef SLIDES_SUPPORT
+      case F_KICK_SLIDES:
+	undo_kick_slides();
+	break;
+      case F_DEL_SLIDE:
+  undo_del_slide();
+  break;
+      case F_NEW_SLIDE:
+  undo_new_slide();
+  break;
+      case F_SWAP_SLIDE:
+  undo_swap_slide();
+  break;
+#endif
     default:
 	put_msg("Nothing to UNDO");
 	return;
@@ -238,13 +258,16 @@ void undo_deletepoint(void)
 
 void undo_break(void)
 {
-    cut_objects(&objects, &object_tails);
+    cut_objects(&objects, &object_tails IF_SLIDES_ARG(False));
     /* remove the depths from this compound because they'll be added in right after */
-    remove_compound_depth(saved_objects.compounds);
+    remove_compound_depth(saved_objects.compounds IF_SLIDES_ARG(False));
     list_add_compound(&objects.compounds, saved_objects.compounds);
     last_action = F_GLUE;
     toggle_markers_in_compound(saved_objects.compounds);
     mask_toggle_compoundmarker(saved_objects.compounds);
+#ifdef SLIDES_SUPPORT
+    update_slides();
+#endif
 }
 
 void undo_glue(void)
@@ -253,7 +276,7 @@ void undo_glue(void)
     tail(&objects, &object_tails);
     append_objects(&objects, saved_objects.compounds, &object_tails);
     /* add the depths from this compound because they weren't added by the append_objects() */
-    add_compound_depth(saved_objects.compounds);
+    /* add_compound_depth(saved_objects.compounds); */
     last_action = F_BREAK;
     mask_toggle_compoundmarker(saved_objects.compounds);
     toggle_markers_in_compound(saved_objects.compounds);
@@ -433,7 +456,7 @@ void undo_change(void)
 	new_c = saved_objects.compounds;
 	old_c = saved_objects.compounds->next;
 	/* account for depths */
-	remove_compound_depth(old_c);
+	remove_compound_depth(old_c IF_SLIDES_ARG(True));
 	add_compound_depth(new_c);
 	/* swap old with new */
 	bcopy((char*)old_c, (char*)&swp_c, sizeof(F_compound));
@@ -460,13 +483,16 @@ void undo_change(void)
 	new_c = &objects;
 	old_c = &saved_objects;
 	/* account for depths */
-	remove_compound_depth(old_c);
+	remove_compound_depth(old_c IF_SLIDES_ARG(True));
 	add_compound_depth(new_c);
 	set_action_object(F_EDIT, O_ALL_OBJECT);
 	set_modifiedflag();
 	redisplay_zoomed_region(0, 0, BACKX(CANVAS_WD), BACKY(CANVAS_HT));
 	break;
     }
+#ifdef SLIDES_SUPPORT
+    update_slides();
+#endif
 }
 
 /*
@@ -514,7 +540,7 @@ void undo_add(void)
 	redisplay_compound(saved_objects.compounds);
 	break;
       case O_ALL_OBJECT:
-	cut_objects(&objects, &object_tails);
+        cut_objects(&objects, &object_tails IF_SLIDES_ARG(True));
 	compound_bound(&saved_objects, &xmin, &ymin, &xmax, &ymax);
 	redisplay_zoomed_region(xmin, ymin, xmax, ymax);
 	break;
@@ -955,3 +981,4 @@ void set_last_arrows(F_arrow *forward, F_arrow *backward)
       last_for_arrow = forward;
       last_back_arrow = backward;
 }
+

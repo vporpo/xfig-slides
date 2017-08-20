@@ -183,6 +183,9 @@
 /* Define to 0 if not provided by regex.h. */
 #undef REG_NOERROR
 
+/* Enable xfig slides */
+#undef SLIDES_SUPPORT
+
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at runtime.

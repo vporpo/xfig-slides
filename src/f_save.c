@@ -32,6 +32,9 @@
 #include "e_compound.h"
 #include "f_load.h"
 #include "u_bound.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 static int	write_tmpfile = 0;
 static char	save_cur_dir[PATH_MAX];
@@ -97,6 +100,22 @@ int write_file(char *file_name, Boolean update_recent)
     return (0);
 }
 
+#ifdef SLIDES_SUPPORT
+Boolean should_write_object(slides_t slides)
+{
+  /* If we are emitting all slides, then all objects should be written */
+  if (emit_all_slides)
+    return True;
+  /* If we have not pressed the SAVE SLIDES button, then write all objects */
+  if (! sv_slides)
+    return True;
+
+  /* We are now in the generation of one .fig per slide.
+     We are selectively writting objects if the CURRENT_SV_SLIDE can be found
+     in SLIDES. */
+  return slides_include_slide(slides, current_sv_slide);
+}
+#endif
 
 /* for fig2dev */
 
@@ -124,28 +143,61 @@ write_objects(FILE *fp)
 #endif  /* I18N */
     write_fig_header(fp);
     for (a = objects.arcs; a != NULL; a = a->next) {
-	num_object++;
-	write_arc(fp, a);
+	  #ifdef SLIDES_SUPPORT
+    if (should_write_object(a->slides))
+	  #endif
+	    {
+	    num_object++;
+	    write_arc(fp, a);
+	    }
     }
     for (c = objects.compounds; c != NULL; c = c->next) {
-	num_object++;
-	write_compound(fp, c);
+      #ifdef SLIDES_SUPPORT
+      struct slides_ c_cum_slides_storage;
+      slides_t c_cummulative_slides = &c_cum_slides_storage;
+      get_cum_slides_in_compound(c, c_cummulative_slides);
+      if (should_write_object(c_cummulative_slides))
+      #endif
+      {
+	    num_object++;
+	    write_compound(fp, c);
+      }
     }
     for (e = objects.ellipses; e != NULL; e = e->next) {
-	num_object++;
-	write_ellipse(fp, e);
+	#ifdef SLIDES_SUPPORT
+	if (should_write_object(e->slides))
+	#endif
+	{
+	  num_object++;
+	  write_ellipse(fp, e);
+	}
     }
     for (l = objects.lines; l != NULL; l = l->next) {
-	num_object++;
-	write_line(fp, l);
+	#ifdef SLIDES_SUPPORT
+	if (should_write_object(l->slides))
+	#endif
+	{
+	  num_object++;
+	  write_line(fp, l);
+	}
     }
     for (s = objects.splines; s != NULL; s = s->next) {
-	num_object++;
-	write_spline(fp, s);
+	#ifdef SLIDES_SUPPORT
+	if (should_write_object(s->slides))
+	#endif
+	{
+	  num_object++;
+	  write_spline(fp, s);
+	}
     }
     for (t = objects.texts; t != NULL; t = t->next) {
-	num_object++;
-	write_text(fp, t);
+	#ifdef SLIDES_SUPPORT
+	if (should_write_object(t->slides))
+	#endif
+	{
+	  num_object++;
+	  write_text(fp, t);
+	}
     }
 #ifdef I18N
     /* reset to original locale */
@@ -250,10 +302,49 @@ void write_colordefs(FILE *fp)
 	fprintf(fp, "}\n");
 }
 
+#ifdef SLIDES_SUPPORT
+static void
+write_slides(FILE *fp, slides_t slides)
+{
+  /* This means that we are generating individual .fig files, one for each slide
+     therefore don't emit the slide numbers.  */
+  if (! emit_all_slides) {
+    return;
+  }
+
+  /* Don't write any slide data if we only have a single slide */
+  if (num_of_used_slides() <= 1) {
+    return;
+  }
+
+  char *com = slides_to_str(slides, SLIDES_PREFIX);
+  if (!com) {
+    return;
+  }
+
+  char last;
+  while (*com) {
+    last = *com;
+    fputc(*com, fp);
+    if (*com == '\n' && *(com+1) != '\0') {
+      assert(0 && "No new lines in slides");
+    }
+    com++;
+  }
+  /* add newline if last line of comment didn't have one */
+  if (last != '\n') {
+    fputc('\n',fp);
+  }
+}
+#endif
+
 void write_arc(FILE *fp, F_arc *a)
 {
     /* any comments first */
     write_comments(fp, a->comments);
+#ifdef SLIDES_SUPPORT
+    write_slides(fp, a->slides);
+#endif
     if (appres.write_v40) {
 	fprintf(fp, "Arc {\n");
 	switch (a->type) {
@@ -312,6 +403,9 @@ void write_compound(FILE *fp, F_compound *com)
 
     /* any comments first */
     write_comments(fp, com->comments);
+#ifdef SLIDES_SUPPORT
+    write_slides(fp, com->slides);
+#endif
 
     if (appres.write_v40) {
 	fprintf(fp, "Compound (%d %d %d %d) {\n",
@@ -352,6 +446,9 @@ void write_ellipse(FILE *fp, F_ellipse *e)
 
     /* any comments first */
     write_comments(fp, e->comments);
+#ifdef SLIDES_SUPPORT
+    write_slides(fp, e->slides);
+#endif
     if (appres.write_v40) {
 	fprintf(fp, "Ellipse {\n");
 	if (e->type == T_ELLIPSE_BY_RAD)
@@ -393,6 +490,9 @@ void write_line(FILE *fp, F_line *l)
 
     /* any comments first */
     write_comments(fp, l->comments);
+#ifdef SLIDES_SUPPORT
+    write_slides(fp, l->slides);
+#endif
 
     /* count number of points and put it in the object */
     for (npts=0, p = l->points; p != NULL; p = p->next)
@@ -474,6 +574,9 @@ void write_spline(FILE *fp, F_spline *s)
 
     /* any comments first */
     write_comments(fp, s->comments);
+#ifdef SLIDES_SUPPORT
+    write_slides(fp, s->slides);
+#endif
 
     /* count number of points and put it in the object */
     for (npts=0, p = s->points; p != NULL; p = p->next)
@@ -524,6 +627,9 @@ void write_text(FILE *fp, F_text *t)
 
     /* any comments first */
     write_comments(fp, t->comments);
+#ifdef SLIDES_SUPPORT
+    write_slides(fp, t->slides);
+#endif
 
     fprintf(fp, "%d %d %d %d %d %d %d %.4f %d %d %d %d %d ",
 			O_TXT, t->type, t->color, t->depth, t->pen_style,

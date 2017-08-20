@@ -23,6 +23,9 @@
 #define		DEF_IND_SW_HT		34
 #define		DEF_IND_SW_WD		64
 #define		FONT_IND_SW_WD		(40+PS_FONTPANE_WD)
+#ifdef SLIDES_SUPPORT
+#define		SLIDES_IND_SW_WD	200
+#endif
 #define		NARROW_IND_SW_WD	56
 #define		WIDE_IND_SW_WD		76
 #define		XWIDE_IND_SW_WD		90
@@ -72,12 +75,21 @@ extern Dimension UPD_CTRL_WD;		/* actual width is det. in setup_ind_panel */
 #define I_NUMXCOPIES	0x10000000
 #define I_NUMYCOPIES	0x20000000
 #define I_TANGNORMLEN	0x40000000
+#ifdef SLIDES_SUPPORT
+#define I_SLIDES	0x80000000
+#else
 #define I_free1_____	0x80000000	/* this one is free for another ind */
+#endif
+
 
 #define I_NONE		0x00000000
 
 /* be sure to update I_ALL if more buttons are added */
+#ifdef SLIDES_SUPPORT
+#define I_ALL		0xffffffff /* & ~I_free1_____ */
+#else
 #define I_ALL		0xffffffff & ~I_free1_____
+#endif
 
 #define I_MIN2		(I_POINTPOSN)
 #define I_MIN3		(I_MIN2 | I_LINKMODE)
@@ -103,7 +115,7 @@ extern Dimension UPD_CTRL_WD;		/* actual width is det. in setup_ind_panel */
 #define I_ARCBOX	(I_BOX | I_BOXRADIUS)
 #define I_PICOBJ	(I_MIN2 | I_DEPTH | I_PEN_COLOR)
 #define I_OBJECT	(I_TEXT0 | I_LINE1 | I_ARROWMODE | I_ARROWTYPE | I_ARROWSIZE | \
-				I_BOXRADIUS | I_DEPTH | I_ARCTYPE | I_DIMLINE)
+				I_BOXRADIUS | I_DEPTH | I_ARCTYPE | I_DIMLINE IF_SLIDES(| I_SLIDES))
 #define I_ALIGN		(I_HALIGN | I_VALIGN)
 #define I_ROTATE	(I_MIN2 | I_ROTNANGLE | I_NUMCOPIES)
 #define I_COPY		(I_MIN3 | I_NUMXCOPIES | I_NUMYCOPIES)
@@ -183,6 +195,9 @@ extern void get_dimline_values(void);
 extern void popup_arrowsize_panel(ind_sw_info *isw);
 extern void popup_flags_panel(ind_sw_info *isw);
 extern void popup_nval_panel(ind_sw_info *isw);
+#ifdef SLIDES_SUPPORT
+extern void popup_slides_update_panel(ind_sw_info *isw);
+#endif
 extern void popup_dimline_panel(ind_sw_info *isw);
 extern void popup_choice_panel(ind_sw_info *isw);
 

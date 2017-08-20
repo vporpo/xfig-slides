@@ -42,6 +42,9 @@
 Boolean	active_layers[MAX_DEPTH +1];
 Boolean	any_active_in_compound(F_compound *cmpnd);
 Widget	layer_form;
+#ifdef SLIDES_SUPPORT
+Widget	layer_bottom;
+#endif
 Boolean	gray_layers = True;
 int	object_depths[MAX_DEPTH +1];	/* count of objects at each depth */
 int	saved_depths[MAX_DEPTH +1];	/* saved when delete all is done */
@@ -120,7 +123,7 @@ init_depth_panel(Widget parent)
     Widget	 layer_viewform;
 
     /* MOUSEFUN_HT and ind_panel height aren't known yet */
-    LAYER_HT = TOPRULER_HT + CANVAS_HT;
+    LAYER_HT = TOPRULER_HT + CANVAS_HT IF_SLIDES(*2/3);
 
     /* main form to hold all the layer stuff */
 
@@ -347,6 +350,9 @@ init_depth_panel(Widget parent)
     NextArg(XtNright, XtChainRight);
     below = XtCreateManagedWidget("backlabel", labelWidgetClass,
 				layer_viewform, Args, ArgCount);
+    #ifdef SLIDES_SUPPORT
+    layer_bottom = below;
+    #endif
 
     /* make actions/translations for user to click on a layer "button" and
        to redraw buttons on expose */
@@ -372,6 +378,9 @@ setup_depth_panel(void)
     FirstArg(XtNheight, &snap_ht);
     GetValues(snap_indicator_panel);
     LAYER_HT = MOUSEFUN_HT + TOPRULER_HT + CANVAS_HT + ind_ht - snap_ht + INTERNAL_BW*4;
+    #ifdef SLIDES_SUPPORT
+    LAYER_HT = LAYER_HT * (100 - SLIDES_HT_CANVAS_PERCENT) / 100;
+    #endif
 
     /* now that the bitmaps have been created, put the checkmark in the proper toggle */
     FirstArg(XtNbitmap, (gray_layers? sm_check_pm : sm_null_check_pm));
@@ -903,7 +912,7 @@ toggle_show_depths(void)
     Dimension	wid, b;
 
     appres.showdepthmanager = !appres.showdepthmanager;
-    put_msg("%s depth manager",
+    put_msg("%s depth" IF_SLIDES(" and slides") " manager",
 		appres.showdepthmanager? "Show": "Don't show");
     /* get actual width of layer form */
     FirstArg(XtNwidth, &wid);
@@ -913,11 +922,11 @@ toggle_show_depths(void)
 	/* make sure it's the right size */
 	setup_depth_panel();
 	/* make canvas smaller to fit depth manager */
-	resize_all(CANVAS_WD-wid-2*b, CANVAS_HT);
+	  resize_all(CANVAS_WD-wid-2*b, CANVAS_HT);
     } else {
 	XtUnmanageChild(layer_form);
 	/* make canvas larger to fill space where depth manager was */
-	resize_all(CANVAS_WD+wid+2*b, CANVAS_HT);
+	  resize_all(CANVAS_WD+wid+2*b, CANVAS_HT);
     }
     /* update the View menu */
     refresh_view_menu();

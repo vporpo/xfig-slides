@@ -25,7 +25,7 @@ void		list_delete_spline(F_spline **spline_list, F_spline *spline);
 void		list_delete_text(F_text **text_list, F_text *text);
 void		list_delete_compound(F_compound **list, F_compound *compound);
 void		remove_depth(int type, int depth);
-void		remove_compound_depth(F_compound *comp);
+void		remove_compound_depth(F_compound *comp IF_SLIDES_ARG(Boolean do_update_slides));
 
 void		list_add_arc(F_arc **list, F_arc *a);
 void		list_add_ellipse(F_ellipse **list, F_ellipse *e);
@@ -85,7 +85,7 @@ void		change_compound(F_compound *old_c, F_compound *new_c);
 void		get_links(int llx, int lly, int urx, int ury);
 void		adjust_links(int mode, F_linkinfo *links, int dx, int dy, int cx, int cy, float sx, float sy, Boolean copying);
 extern void append_objects (F_compound *l1, F_compound *l2, F_compound *tails);
-extern void cut_objects (F_compound *objects, F_compound *tails);
+extern void cut_objects (F_compound *objects, F_compound *tails IF_SLIDES_ARG(Boolean do_update_slides));
 extern int object_count (F_compound *list);
 extern void set_tags (F_compound *list, int tag);
 extern void get_interior_links (int llx, int lly, int urx, int ury);

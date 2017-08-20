@@ -19,7 +19,13 @@ extern void	load_request(Widget w, XButtonEvent *ev);
 extern void	do_save(Widget w, XButtonEvent *ev);
 extern void	popup_open_panel(void);
 extern void	popup_merge_panel(void);
+#ifdef SLIDES_SUPPORT
+extern void popup_file_slides_panel(void);
+#endif
 extern void	popup_saveas_panel(void);
+#ifdef SLIDES_SUPPORT
+extern void	popup_slides_panel(void);
+#endif
 extern Boolean	query_save(char *msg);
 
 extern Widget	preview_size, preview_widget, preview_name;

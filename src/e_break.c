@@ -28,6 +28,9 @@
 
 #include "u_markers.h"
 #include "w_cursor.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 static void	init_break(F_line *p, int type, int x, int y, int px, int py, int loc_tag);
 static void	init_break_only(F_line *p, int type, int x, int y, int px, int py);
@@ -80,4 +83,8 @@ init_break(F_line *p, int type, int x, int y, int px, int py, int loc_tag)
     set_action(F_BREAK);
     set_latestcompound(cur_c);
     set_modifiedflag();
+    #ifdef SLIDES_SUPPORT
+    update_slides();
+    fix_played_slide();
+    #endif
 }

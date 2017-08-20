@@ -51,7 +51,9 @@ static Boolean add_closepoint(void);
 
 #include "u_draw_spline.c"
 
-
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 /* the spline definition stuff has been moved to u_draw_spline.c which
    is included later in this file */
 
@@ -244,7 +246,7 @@ void draw_arc(F_arc *a, int op)
     cy = rcy = a->center.y;
 
     /* show point numbers if requested */
-    if (appres.shownums && active_layer(a->depth)) {
+    if (appres.shownums && active_layer(a->depth) IF_SLIDES(&& active_object_slides (a, O_ARC))) {
 	/* we may have to enlarge the clipping area to include the center point of the arc */
 	scx = ZOOMX(cx);
 	scy = ZOOMY(cy);
@@ -604,7 +606,7 @@ void draw_line(F_line *line, int op)
     /* is it a picture object or a Fig figure? */
     if (line->type == T_PICTURE) {
 	if (line->pic->pic_cache) {
-	    if ((line->pic->pic_cache->bitmap != NULL) && active_layer(line->depth)) {
+	    if ((line->pic->pic_cache->bitmap != NULL) && active_layer(line->depth) IF_SLIDES(&& active_object_slides (line, O_POLYLINE))) {
 		/* only draw the picture if there is a pixmap AND this layer is active */
 		draw_pic_pixmap(line, op);
 		return;
@@ -671,7 +673,7 @@ void draw_line(F_line *line, int op)
 	pw_point(canvas_win, x, y, op, line->depth,
 			line->thickness, line->pen_color, line->cap_style);
 	/* label the point number above the point */
-	if (appres.shownums && active_layer(line->depth)) {
+	if (appres.shownums && active_layer(line->depth) IF_SLIDES(&& active_object_slides (line, O_POLYLINE))) {
 	    pw_text(canvas_win, x, round(y-3.0/zoomscale), PAINT, line->depth,
 			roman_font, 0.0, "0", RED, COLOR_NONE);
 	}
@@ -686,7 +688,7 @@ void draw_line(F_line *line, int op)
 	x = point->x;
 	y = point->y;
 	/* label the point number above the point */
-	if (appres.shownums && active_layer(line->depth)) {
+	if (appres.shownums && active_layer(line->depth) IF_SLIDES(&& active_object_slides (line, O_POLYLINE))) {
 	    /* if BOX or POLYGON, don't label last point (which is same as first) */
 	    if (((line->type == T_BOX || line->type == T_POLYGON) && point->next != NULL) ||
 		(line->type != T_BOX && line->type != T_POLYGON)) {
@@ -744,7 +746,7 @@ void draw_arcbox(F_line *line, int op)
 	else if (point->y > ymax)
 	    ymax = point->y;
 	/* label the point number above the point */
-	if (appres.shownums && active_layer(line->depth)) {
+	if (appres.shownums && active_layer(line->depth) IF_SLIDES(&& active_object_slides (line, O_POLYLINE))) {
 	    sprintf(bufx,"%d",i++);
 	    pw_text(canvas_win, point->x, round(point->y-3.0/zoomscale), PAINT, line->depth,
 			roman_font, 0.0, bufx, RED, COLOR_NONE);
@@ -1293,7 +1295,7 @@ void greek_text(F_text *text, int x1, int y1, int x2, int y2)
     float	 dx, dy;
     char	 *cp;
 
-    if (text->depth < MAX_DEPTH+1 && !active_layer(text->depth))
+    if (text->depth < MAX_DEPTH+1 && !active_layer(text->depth) IF_SLIDES(&& !active_object_slides (text, O_TXT)))
 	color = MED_GRAY;
     else
 	color = DARK_GRAY;
@@ -1350,27 +1352,27 @@ draw_compoundelements(F_compound *c, int op)
 	return;
 
     for (l = c->lines; l != NULL; l = l->next) {
-	if (active_layer(l->depth))
+      if (active_layer(l->depth) IF_SLIDES(&& active_object_slides (l, O_POLYLINE)))
 	    draw_line(l, op);
     }
     for (s = c->splines; s != NULL; s = s->next) {
-	if (active_layer(s->depth))
+      if (active_layer(s->depth) IF_SLIDES(&& active_object_slides (s, O_SPLINE)))
 	    draw_spline(s, op);
     }
     for (a = c->arcs; a != NULL; a = a->next) {
-	if (active_layer(a->depth))
+      if (active_layer(a->depth) IF_SLIDES(&& active_object_slides (a, O_ARC)))
 	    draw_arc(a, op);
     }
     for (e = c->ellipses; e != NULL; e = e->next) {
-	if (active_layer(e->depth))
+      if (active_layer(e->depth) IF_SLIDES(&& active_object_slides (e, O_ELLIPSE)))
 	    draw_ellipse(e, op);
     }
     for (t = c->texts; t != NULL; t = t->next) {
-	if (active_layer(t->depth))
+      if (active_layer(t->depth) IF_SLIDES(&& active_object_slides (t, O_TXT)))
 	    draw_text(t, op);
     }
     for (c1 = c->compounds; c1 != NULL; c1 = c1->next) {
-	if (any_active_in_compound(c1))
+      if (any_active_in_compound(c1) IF_SLIDES(&& active_object_slides (c1, O_COMPOUND)))
 	    draw_compoundelements(c1, op);
     }
 }

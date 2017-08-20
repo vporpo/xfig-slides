@@ -29,6 +29,9 @@
 #include "w_zoom.h"
 
 #include "u_draw.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 #define		Ninety_deg		M_PI_2
 #define		One_eighty_deg		M_PI

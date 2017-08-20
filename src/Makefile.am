@@ -56,7 +56,7 @@ xfig_SOURCES = d_arcbox.c d_arcbox.h d_arc.c d_arc.h d_box.c d_box.h \
 	w_listwidget.h w_listwidgetP.h w_modepanel.c w_modepanel.h \
 	w_mousefun.c w_mousefun.h w_msgpanel.c w_msgpanel.h w_print.c \
 	w_print.h w_rottext.c w_rottext.h w_rulers.c w_rulers.h w_setup.c \
-	w_setup.h w_snap.c w_snap.h w_srchrepl.c w_srchrepl.h w_style.c \
+	w_setup.h w_slides.c w_snap.c w_snap.h w_srchrepl.c w_srchrepl.h w_style.c \
 	w_style.h w_util.c w_util.h w_zoom.c w_zoom.h Xfuncs.h Xosdefs.h \
 	splash.xbm version.xbm
 

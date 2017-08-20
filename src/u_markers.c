@@ -163,22 +163,24 @@ void toggle_markers_in_compound(F_compound *cmpnd)
     mask = cur_objmask;
     if (mask & M_ELLIPSE)
 	for (e = cmpnd->ellipses; e != NULL; e = e->next)
-	    if (active_layer(e->depth))
+	    if (active_layer(e->depth) IF_SLIDES(&& active_object_slides(e, O_ELLIPSE)))
 		toggle_ellipsemarker(e);
     if (mask & M_TEXT)
 	for (t = cmpnd->texts; t != NULL; t = t->next) {
-	    if (active_layer(t->depth) &&
+	  if (active_layer(t->depth) &&
+	        IF_SLIDES(active_object_slides(t, O_TXT) &&)
 	        (((hidden_text(t) && (mask & M_TEXT_HIDDEN)) ||
 		((!hidden_text(t)) && (mask & M_TEXT_NORMAL)))))
 		    toggle_textmarker(t);
 	}
     if (mask & M_ARC)
 	for (a = cmpnd->arcs; a != NULL; a = a->next)
-	    if (active_layer(a->depth))
+	  if (active_layer(a->depth) IF_SLIDES(&& active_object_slides(a, O_ARC)))
 		toggle_arcmarker(a);
     if (mask & M_POLYLINE)
 	for (l = cmpnd->lines; l != NULL; l = l->next) {
-	    if (active_layer(l->depth) &&
+	  if (active_layer(l->depth) &&
+	        IF_SLIDES(active_object_slides(l, O_POLYLINE) &&)
 	        ((((l->type == T_BOX) ||
 		  (l->type == T_ARCBOX)) && (mask & M_POLYLINE_BOX)) ||
 		((l->type == T_PICTURE) && (mask & M_POLYLINE_BOX)) ||
@@ -188,7 +190,8 @@ void toggle_markers_in_compound(F_compound *cmpnd)
 	}
     if (mask & M_SPLINE)
 	for (s = cmpnd->splines; s != NULL; s = s->next) {
-	    if (active_layer(s->depth) &&
+	  if (active_layer(s->depth) &&
+	       IF_SLIDES(active_object_slides(s, O_SPLINE) &&)
 	       (((s->type == T_OPEN_INTERP) && (mask & M_SPLINE_O_INTERP)) ||
 		((s->type == T_OPEN_APPROX) && (mask & M_SPLINE_O_APPROX))   ||
 		((s->type == T_OPEN_XSPLINE) && (mask & M_SPLINE_O_XSPLINE)) ||
@@ -199,7 +202,7 @@ void toggle_markers_in_compound(F_compound *cmpnd)
 	}
     if (mask & M_COMPOUND)
 	for (c = cmpnd->compounds; c != NULL; c = c->next)
-	    if (any_active_in_compound(c))
+	  if (any_active_in_compound(c) IF_SLIDES(&& any_active_slides_in_compound(c)))
 		toggle_compoundmarker(c);
 }
 
@@ -217,24 +220,28 @@ void update_markers(int mask)
     newmask = mask;
     if (CHANGED_MASK(M_ELLIPSE))
 	for (e = objects.ellipses; e != NULL; e = e->next)
-	    if (active_layer(e->depth))
+	    if (active_layer(e->depth) IF_SLIDES(&& active_object_slides(e, O_ELLIPSE)))
 		toggle_ellipsemarker(e);
     if (CHANGED_MASK(M_TEXT_NORMAL) || CHANGED_MASK(M_TEXT_HIDDEN))
 	for (t = objects.texts; t != NULL; t = t->next) {
 	    if (active_layer(t->depth) &&
+		IF_SLIDES(active_object_slides(t, O_TXT) &&)
 		((hidden_text(t) && CHANGED_MASK(M_TEXT_HIDDEN))   ||
 		((!hidden_text(t)) && CHANGED_MASK(M_TEXT_NORMAL))))
 		    toggle_textmarker(t);
 	}
     if (CHANGED_MASK(M_ARC))
 	for (a = objects.arcs; a != NULL; a = a->next)
-	    if (active_layer(a->depth))
+	    if (active_layer(a->depth) IF_SLIDES(&& active_object_slides(a, O_ARC)))
 		toggle_arcmarker(a);
     if (CHANGED_MASK(M_POLYLINE_LINE) ||
 	CHANGED_MASK(M_POLYLINE_POLYGON) ||
 	CHANGED_MASK(M_POLYLINE_BOX))
 	for (l = objects.lines; l != NULL; l = l->next) {
 	    if (active_layer(l->depth) &&
+#ifdef SLIDES_SUPPORT
+		active_object_slides(l, O_POLYLINE) &&
+#endif
 		((((l->type == T_BOX || l->type == T_ARCBOX ||
 		   l->type == T_PICTURE)) && CHANGED_MASK(M_POLYLINE_BOX)) ||
 		((l->type == T_POLYLINE) && CHANGED_MASK(M_POLYLINE_LINE)) ||
@@ -245,7 +252,10 @@ void update_markers(int mask)
 	CHANGED_MASK(M_SPLINE_O_INTERP) || CHANGED_MASK(M_SPLINE_C_INTERP) ||
 	CHANGED_MASK(M_SPLINE_O_XSPLINE) || CHANGED_MASK(M_SPLINE_C_XSPLINE))
 	for (s = objects.splines; s != NULL; s = s->next) {
-	    if (active_layer(s->depth) &&
+	  if (active_layer(s->depth) &&
+#ifdef SLIDES_SUPPORT
+		active_object_slides(s, O_SPLINE) &&
+#endif
 		(((s->type == T_OPEN_INTERP) && CHANGED_MASK(M_SPLINE_O_INTERP)) ||
 		((s->type == T_OPEN_APPROX) && CHANGED_MASK(M_SPLINE_O_APPROX)) ||
 		((s->type == T_OPEN_XSPLINE) && CHANGED_MASK(M_SPLINE_O_XSPLINE)) ||
@@ -256,7 +266,7 @@ void update_markers(int mask)
 	  }
     if (CHANGED_MASK(M_COMPOUND))
 	for (c = objects.compounds; c != NULL; c = c->next)
-	    if (any_active_in_compound(c))
+	  if (any_active_in_compound(c) IF_SLIDES(&& any_active_slides_in_compound(c)))
 		toggle_compoundmarker(c);
     cur_objmask = newmask;
 }

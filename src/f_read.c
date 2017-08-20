@@ -45,6 +45,9 @@
 #include "u_translate.h"
 #include "w_util.h"
 #include "w_layers.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 /* EXPORTS */
 
@@ -54,6 +57,10 @@ int		 num_object;		/* current number of objects */
 char		*read_file_name;	/* current input file name */
 
 /* LOCAL */
+
+#ifdef SLIDES_SUPPORT
+char slides_buf[MAX_SLIDES_STR];
+#endif
 
 static char	Err_incomp[] = "Incomplete %s object at line %d.";
 
@@ -68,6 +75,10 @@ static char	  *attach_comments(void);
 static void	   count_lines_correctly(FILE *fp);
 static int	   read_return(int status);
 static Boolean	   contains_picture(F_compound *compound);
+#ifdef SLIDES_SUPPORT
+static slides_t parse_slides(void);
+#endif
+
 
 #define FILL_CONVERT(f) \
 	   ((proto >= 22) ? (f): \
@@ -84,6 +95,9 @@ static Boolean	   contains_picture(F_compound *compound);
 char		 buf[BUF_SIZE];		/* input buffer */
 char		*comments[MAXCOMMENTS];	/* comments saved for current object */
 int		 numcom;		/* current comment index */
+#ifdef SLIDES_SUPPORT
+slides_t	 slides_parsed;
+#endif
 Boolean		 com_alloc = False;	/* whether or not the comment array has been init. */
 int		 TFX;			/* true for 1.4TFX protocol */
 int		 proto;			/* file protocol*10 */
@@ -428,8 +442,12 @@ static int
 read_return(int status)
 {
     defer_update_layers = 0;
-    if (!update_figs)
-	update_layers();
+    if (!update_figs) {
+        update_layers();
+        #ifdef SLIDES_SUPPORT
+        update_slides();
+        #endif
+    }
     return status;
 }
 
@@ -457,6 +475,9 @@ int read_objects(FILE *fp, F_compound *obj, int *res)
     /* attach any comments found thus far to the whole figure */
     obj->comments = attach_comments();
 
+    #ifdef SLIDES_SUPPORT
+    obj->slides = get_slides_parsed_safe(parse_slides());
+    #endif
     /* save the resolution for caller */
     *res = ppi;
 
@@ -531,7 +552,9 @@ int read_objects(FILE *fp, F_compound *obj, int *res)
 	    file_msg("Incorrect object code at line %d.", line_no);
 	    continue;
 	} /* switch */
-
+#ifdef SLIDES_SUPPORT
+    slides_buf[0] = '\0';
+#endif
     } /* while */
 
     if (feof(fp))
@@ -642,6 +665,9 @@ read_arcobject(FILE *fp)
     fix_fillstyle(a);	/* make sure that black/white have legal fill styles */
 
     a->comments = attach_comments();		/* attach any comments */
+    #ifdef SLIDES_SUPPORT
+    a->slides = get_slides_parsed_safe(parse_slides());
+    #endif
 
     /* forward arrow */
     if (fa) {
@@ -701,6 +727,9 @@ read_compoundobject(FILE *fp)
     com->compounds = NULL;
     com->next = NULL;
     com->comments = attach_comments();		/* attach any comments */
+    #ifdef SLIDES_SUPPORT
+    com->slides = get_slides_parsed_safe(parse_slides());
+    #endif
 
     save_line = line_no;
     /* read bounding info for compound */
@@ -842,6 +871,9 @@ read_ellipseobject(void)
     check_color(&e->fill_color);
     fix_fillstyle(e);	/* make sure that black/white have legal fill styles */
     e->comments = attach_comments();		/* attach any comments */
+    #ifdef SLIDES_SUPPORT
+    e->slides = get_slides_parsed_safe(parse_slides());
+    #endif
     return e;
 }
 
@@ -1059,6 +1091,9 @@ read_lineobject(FILE *fp)
 	}
     }
     l->comments = attach_comments();		/* attach any comments */
+    #ifdef SLIDES_SUPPORT
+    l->slides = get_slides_parsed_safe(parse_slides());
+    #endif
     /* skip to the next line */
     skip_line(fp);
     return l;
@@ -1264,7 +1299,9 @@ read_splineobject(FILE *fp)
     }
     cp->next = NULL;
     s->comments = attach_comments();		/* attach any comments */
-
+    #ifdef SLIDES_SUPPORT
+    s->slides = get_slides_parsed_safe(parse_slides());
+    #endif
     /* skip to the end of the line */
     skip_line(fp);
     return s;
@@ -1486,6 +1523,9 @@ read_textobject(FILE *fp)
     }
 
     t->comments = attach_comments();		/* attach any comments */
+    #ifdef SLIDES_SUPPORT
+    t->slides = get_slides_parsed_safe(parse_slides());
+    #endif
     return t;
 }
 
@@ -1544,10 +1584,16 @@ int read_line(FILE *fp)
 	    return -1;
 	}
 	line_no++;
-	if (*buf == '#') {		/* save any comments */
+	if (*buf == '#') {    /* save any comments */
+#ifdef SLIDES_SUPPORT
+    char *slides_start = NULL;
+    if ((slides_start = get_slides_line(buf+1))) {
+        strncpy(slides_buf, slides_start, MAX_SLIDES_STR);
+    } else
+#endif
 	    if (save_comment(fp) < 0)
 		return -1;
-	} else if (*buf != '\n')	/* Skip empty lines */
+	}	else if (*buf != '\n')	/* Skip empty lines */
 	    return 1;
     }
 }
@@ -1574,6 +1620,22 @@ int save_comment(FILE *fp)
 	strcpy(comments[numcom++], &buf[i]);
     return 1;
 }
+
+#ifdef SLIDES_SUPPORT
+/* Parse the slides within BUF[] */
+static slides_t
+parse_slides(void)
+{
+    /* If not found, early exit */
+    if (strlen(slides_buf) == 0) {
+      return NULL;
+    }
+
+    /* parse BUF */
+    slides_t slides = parse_slides_str(slides_buf);
+    return slides;
+}
+#endif
 
 /* skip to the end of the current line */
 

@@ -111,6 +111,9 @@ extract_subspline(F_spline *spline, F_point *point)
   subspline->for_arrow  = NULL;
   subspline->back_arrow = NULL;
   subspline->comments   = NULL;
+  #ifdef SLIDES_SUPPORT
+  subspline->slides   = NULL;
+  #endif
 
   prev1 = prev2 = spline->points;
   for (cursor=spline->points ; cursor!=point ; cursor = cursor->next)

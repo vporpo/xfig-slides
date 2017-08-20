@@ -39,6 +39,9 @@
 #include "f_save.h"
 #include "u_markers.h"
 #include "w_cursor.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 static void	init_delete(F_line *p, int type, int x, int y, int px, int py);
 static void	init_delete_region(int x, int y), delete_region(int x, int y), cancel_delete_region(void);
@@ -100,6 +103,9 @@ init_delete(F_line *p, int type, int x, int y, int px, int py)
     default:
 	return;
     }
+	#ifdef SLIDES_SUPPORT
+	update_slides ();
+	#endif
 }
 
 static void
@@ -153,7 +159,7 @@ delete_region(int x, int y)
     set_latestobjects(c);
     tail(&objects, &object_tails);
     append_objects(&objects, &saved_objects, &object_tails);
-    cut_objects(&objects, &object_tails);
+    cut_objects(&objects, &object_tails IF_SLIDES_ARG(True));
     set_action_object(F_DELETE, O_ALL_OBJECT);
     set_modifiedflag();
     redisplay_compound(c);
@@ -274,6 +280,10 @@ void delete_all(void)
     reset_depths();
     /* refresh depth manager */
     update_layers();
+    #ifdef SLIDES_SUPPORT
+    /* refresh side slides */
+    update_slides ();
+    #endif
 
     /* in case the user is inside any compounds */
     close_all_compounds();
@@ -287,6 +297,9 @@ void delete_all(void)
     objects.splines = NULL;
     objects.texts = NULL;
     objects.comments = NULL;
+    #ifdef SLIDES_SUPPORT
+    objects.slides = NULL;
+    #endif
 
     object_tails.arcs = NULL;
     object_tails.compounds = NULL;

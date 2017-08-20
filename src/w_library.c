@@ -373,7 +373,7 @@ put_object_sel(Widget w, XButtonEvent *ev)
 
     /* if user was placing another object, remove it from the list first */
     if (action_on)
-	remove_compound_depth(new_c);
+      remove_compound_depth(new_c IF_SLIDES_ARG(True));
 
     obj = cur_library_object;
      /* create a compound for the chosen object if it hasn't already been created */

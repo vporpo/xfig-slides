@@ -78,6 +78,10 @@ next_arc_found(int x, int y, int tolerance, int *px, int *py, unsigned int shift
     for (; a != NULL; a = (shift? prev_arc(objects.arcs, a): a->next), n++) {
 	if (!active_layer(a->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(a, O_ARC))
+	    continue;
+	#endif
 	for (i = 0; i < 3; i++) {
 	    if ((abs(a->point[i].x - x) <= tolerance) &&
 		(abs(a->point[i].y - y) <= tolerance)) {
@@ -160,6 +164,10 @@ next_ellipse_found(int x, int y, int tolerance, int *px, int *py, unsigned int s
     for (; e != NULL; e = (shift? prev_ellipse(objects.ellipses, e): e->next), n++) {
 	if (!active_layer(e->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(e, O_ELLIPSE))
+	    continue;
+	#endif
 	dx = x - e->center.x;
 	dy = y - e->center.y;
 	a = e->radiuses.x;
@@ -228,6 +236,10 @@ next_line_found(int x, int y, int tolerance, int *px, int *py, unsigned int shif
     for (; l != NULL; l = (shift? prev_line(objects.lines, l): l->next), n++) {
 	if (!active_layer(l->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(l, O_POLYLINE))
+	    continue;
+	#endif
 	if (validline_in_mask(l)) {
 	    point = l->points;
 	    x1 = point->x;
@@ -278,6 +290,10 @@ next_spline_found(int x, int y, int tolerance, int *px, int *py, unsigned int sh
     for (; s != NULL; s = (shift? prev_spline(objects.splines, s): s->next), n++) {
 	if (!active_layer(s->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(s, O_SPLINE))
+	    continue;
+	#endif
 	if (validspline_in_mask(s)) {
 	    point = s->points;
 	    x1 = point->x;
@@ -314,6 +330,10 @@ next_text_found(int x, int y, int tolerance, int *px, int *py, unsigned int shif
     for (; t != NULL; t = (shift? prev_text(objects.texts, t): t->next), n++) {
 	if (!active_layer(t->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(t, O_TXT))
+	    continue;
+	#endif
 	if (validtext_in_mask(t)) {
 	    if (in_text_bound(t, x, y, &dum, False)) {
 		*px = x;
@@ -345,6 +365,10 @@ next_compound_found(int x, int y, int tolerance, int *px, int *py, unsigned int 
     for (; c != NULL; c = (shift? prev_compound(objects.compounds, c): c->next), n++) {
 	if (!any_active_in_compound(c))
 		continue;
+	#ifdef SLIDES_SUPPORT
+	if (!any_active_slides_in_compound(c))
+		continue;
+	#endif
 	if (close_to_vector(c->nwcorner.x, c->nwcorner.y, c->nwcorner.x,
 			    c->secorner.y, x, y, tolerance, tol2, px, py))
 	    return True;
@@ -579,6 +603,10 @@ next_arc_point_found(int x, int y, int tol, int *point_num, unsigned int shift)
     for (; a != NULL; a = (shift? prev_arc(objects.arcs, a): a->next), n++) {
 	if (!active_layer(a->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(a, O_ARC))
+	    continue;
+	#endif
 	for (i = 0; i < 3; i++) {
 	    if (abs(a->point[i].x - x) <= tol &&
 		abs(a->point[i].y - y) <= tol) {
@@ -608,6 +636,10 @@ next_ellipse_point_found(int x, int y, int tol, int *point_num, unsigned int shi
     for (; e != NULL; e = (shift? prev_ellipse(objects.ellipses, e): e->next), n++) {
 	if (!active_layer(e->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(e, O_ELLIPSE))
+	    continue;
+	#endif
 	if (abs(e->start.x - x) <= tol && abs(e->start.y - y) <= tol) {
 	    *point_num = 0;
 	    return True;
@@ -638,6 +670,10 @@ next_line_point_found(int x, int y, int tol, F_point **p, F_point **q, unsigned 
     for (; l != NULL; l = (shift? prev_line(objects.lines, l): l->next)) {
 	if (!active_layer(l->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(l, O_POLYLINE))
+	    continue;
+	#endif
 	if (validline_in_mask(l)) {
 	    n++;
 	    for (a = NULL, b = l->points; b != NULL; a = b, b = b->next) {
@@ -698,6 +734,10 @@ next_compound_point_found(int x, int y, int tol, int *p, int *q, unsigned int sh
     for (; c != NULL; c = (shift? prev_compound(objects.compounds, c): c->next), n++) {
 	if (!any_active_in_compound(c))
 		continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides (c, O_COMPOUND))
+		continue;
+	#endif
 	if (abs(c->nwcorner.x - x) <= tol &&
 	    abs(c->nwcorner.y - y) <= tol) {
 	    *p = c->nwcorner.x;
@@ -864,7 +904,7 @@ text_search(int x, int y, int *posn)
     F_text	   *t;
 
     for (t = objects.texts; t != NULL; t = t->next) {
-	if (active_layer(t->depth) && in_text_bound(t, x, y, posn, False))
+	if (active_layer(t->depth) IF_SLIDES(&& active_object_slides(t, O_TXT)) && in_text_bound(t, x, y, posn, False))
 		return(t);
     }
     return (NULL);

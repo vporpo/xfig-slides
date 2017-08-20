@@ -19,6 +19,9 @@
 
 #ifndef MODE_H
 #define MODE_H
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 #include <limits.h>	/* PATH_MAX, below */
 #ifndef PATH_MAX
@@ -79,6 +82,12 @@
 #define		F_AREAMEAS		60
 #define		F_PASTE			61
 #define		F_CHOP			62
+#ifdef SLIDES_SUPPORT
+#define		F_KICK_SLIDES		63
+#define   F_DEL_SLIDE 64
+#define   F_NEW_SLIDE 65
+#define   F_SWAP_SLIDE 66
+#endif
 
 extern int	cur_mode;
 
@@ -201,6 +210,9 @@ extern int	min_num_points;
 
 /* position of languages starting from 0 */
 enum {
+	#ifdef SLIDES_SUPPORT
+	LANG_FIG,
+	#endif
 	LANG_PS,
 	LANG_EPS,
 	LANG_EPS_ASCII,
@@ -328,6 +340,9 @@ extern int	cur_dimline_prec;
 
 extern float	cur_elltextangle;	/* text/ellipse input angle */
 extern char	EMPTY_PIC[8];
+#ifdef SLIDES_SUPPORT
+extern slides_t cur_slides;
+#endif
 
 /***************************  File Settings  ****************************/
 

@@ -93,7 +93,8 @@ static Position rootx, rooty;
 static void	new_generic_values(void);
 static void	new_arrow_values(void);
 static void	get_new_line_values(void);
-static void	generic_window(char *object_type, char *sub_type, icon_struct *icon, void (*d_proc) (/* ??? */), Boolean generics, Boolean arrows, char *comments);
+static void	generic_window(char *object_type, char *sub_type, icon_struct *icon, void (*d_proc) (/* ??? */), Boolean generics, Boolean arrows, char *comments IF_SLIDES(COMMA slides_t slides)
+);
 static void     spline_point_window(int x, int y);
 static void	font_image_panel(Pixmap pixmap, char *label, Widget *pi_x);
 static Widget	pen_color_selection_panel(void);
@@ -207,6 +208,9 @@ static Widget	cur_fontsize_panel;
 static Widget	fill_style_button;
 static Widget	radius, num_objects;
 static Widget	comments_panel;
+#ifdef SLIDES_SUPPORT
+static Widget	slides_panel;
+#endif
 static Widget	for_aform,back_aform;
 static Widget	but1;
 static Widget	unit_menu_button;
@@ -359,6 +363,12 @@ static String	      edit_comment_translations =
 	"<Btn4Down>:	scroll-one-line-up()\n\
 	<Btn5Down>:	scroll-one-line-down()\n";
 
+#ifdef SLIDES_SUPPORT
+static String	      edit_slides_translations = 
+	"<Btn4Down>:	scroll-one-line-up()\n\
+	<Btn5Down>:	scroll-one-line-down()\n";
+#endif
+
 static XtActionsRec     text_actions[] =
 {
     {"DoneEdit", (XtActionProc) edit_done},
@@ -444,6 +454,9 @@ static struct {
     int		 pen_style;
     int		 fill_style;
     char	*comments;
+#ifdef SLIDES_SUPPORT
+    slides_t     slides;
+#endif
     F_arrow	 for_arrow;
     F_arrow	 back_arrow;
 }	generic_vals;
@@ -456,7 +469,9 @@ static struct {
 	generic_vals.style	= x->style; \
 	generic_vals.style_val	= x->style_val; \
 	generic_vals.pen_style	= x->pen_style; \
-	generic_vals.fill_style = x->fill_style
+	generic_vals.fill_style = x->fill_style; \
+	IF_SLIDES(generic_vals.slides     = x->slides)
+
 
 #define get_generic_vals(x) \
 	new_generic_values(); \
@@ -468,7 +483,9 @@ static struct {
 	x->style_val	= generic_vals.style_val; \
 	x->pen_style	= generic_vals.pen_style; \
 	x->fill_style	= generic_vals.fill_style; \
-	x->comments	= generic_vals.comments
+	x->comments	= generic_vals.comments; \
+	IF_SLIDES(x->slides	= generic_vals.slides)
+
 
 #define put_join_style(x) \
 	generic_vals.join_style = x->join_style;
@@ -1048,8 +1065,9 @@ scale_percent_pic(Widget w, XButtonEvent *ev, String *params, Cardinal *num_para
 
 void make_window_figure(void)
 {
+
     generic_window("Whole Figure", "", &figure_ic, done_figure_comments,
-		NO_GENERICS, NO_ARROWS, objects.comments);
+		   NO_GENERICS, NO_ARROWS, objects.comments IF_SLIDES(COMMA objects.slides));
 }
 
 static void
@@ -1087,7 +1105,7 @@ void make_window_compound(F_compound *c)
     new_c = c;
 
     generic_window("COMPOUND", "", &glue_ic, done_compound,
-				NO_GENERICS, NO_ARROWS, c->comments);
+		   NO_GENERICS, NO_ARROWS, c->comments IF_SLIDES(COMMA c->slides));
 
     /* tell the pulldown unit menu which panels to convert */
     init_convert_array();
@@ -1405,6 +1423,17 @@ rescale_compound(void)
     done_compound();
 }
 
+#ifdef SLIDES_SUPPORT
+/* Helper for setting parents for each object in compound */
+static slides_t new_set_slides;
+static void
+set_slides(void * obj, int type)
+{
+    SET_OBJ_ATTR_TO(obj, type, slides, new_set_slides);
+}
+#endif
+
+
 static void
 get_new_compound_values(void)
 {
@@ -1434,6 +1463,14 @@ get_new_compound_values(void)
     /* get any comments */
     new_c->comments = strdup(panel_get_value(comments_panel));
 
+#ifdef SLIDES_SUPPORT
+    /* get any slides */
+    new_c->slides = parse_slides_str(panel_get_value(slides_panel));
+    /* set slides to all objects in compound */
+    new_set_slides = new_c->slides;
+
+    for_all_objects_in_compound_do(new_c, set_slides, NULL, True);
+#endif
     /* get any new text object values */
     for (t=new_c->texts,i=0; t ;t=t->next,i++) {
 	if (t->cstring)
@@ -1489,7 +1526,7 @@ done_compound(void)
 	set_latestcompound(old_c);
 	set_action_object(F_EDIT, O_COMPOUND);
 	set_modifiedflag();
-	remove_compound_depth(old_c);
+	remove_compound_depth(old_c IF_SLIDES_ARG(True));
 	add_compound_depth(new_c);
 	/* if this was a place-and-edit, continue with library place */
 	if (edit_remember_lib_mode) {
@@ -1574,17 +1611,17 @@ void make_window_line(F_line *l)
 	put_generic_arrows(new_l);
 	/* don't make arrow panels if single-point line */
 	generic_window("POLYLINE", "Polyline", &line_ic, done_line,
-			GENERICS, (new_l->points->next? ARROWS: NO_ARROWS), l->comments);
+			GENERICS, (new_l->points->next? ARROWS: NO_ARROWS), l->comments IF_SLIDES(COMMA l->slides));
 	points_panel(new_l->points);
 	break;
       case T_POLYGON:
 	generic_window("POLYLINE", "Polygon", &polygon_ic, done_line,
-			GENERICS, NO_ARROWS, l->comments);
+			GENERICS, NO_ARROWS, l->comments IF_SLIDES(COMMA l->slides));
 	points_panel(new_l->points);
 	break;
       case T_BOX:
 	generic_window("POLYLINE", "Box", &box_ic, done_line,
-			GENERICS, NO_ARROWS, l->comments);
+			GENERICS, NO_ARROWS, l->comments IF_SLIDES(COMMA l->slides));
 	p1 = *new_l->points;
 	p2 = *new_l->points->next->next;
 	xy_panel(p1.x, p1.y, "First corner", &x1_panel, &y1_panel, True);
@@ -1592,7 +1629,7 @@ void make_window_line(F_line *l)
 	break;
       case T_ARCBOX:
 	generic_window("POLYLINE", "ArcBox", &arc_box_ic, done_line,
-			GENERICS, NO_ARROWS, l->comments);
+			GENERICS, NO_ARROWS, l->comments IF_SLIDES(COMMA l->slides));
 	p1 = *new_l->points;
 	p2 = *new_l->points->next->next;
 	(void) int_panel(new_l->radius, form, "Corner radius", (Widget) 0, &radius,
@@ -1603,7 +1640,7 @@ void make_window_line(F_line *l)
       case T_PICTURE:
 	old_l->type = T_BOX;	/* so colors of old won't be included in new */
 	generic_window("POLYLINE", "Picture Object", &picobj_ic, done_line,
-			NO_GENERICS, NO_ARROWS, l->comments);
+			NO_GENERICS, NO_ARROWS, l->comments IF_SLIDES(COMMA l->slides));
 
 	below = pen_color_selection_panel();
 	/* only the XBM (bitmap) type has a pen color */
@@ -1990,6 +2027,10 @@ get_new_line_values(void)
 	new_l->depth = atoi(panel_get_value(depth_panel));
 	/* get any comments (this is done in get_generic_vals for other line types) */
 	new_l->comments = strdup(panel_get_value(comments_panel));
+	#ifdef SLIDES_SUPPORT
+	/* get any slides */
+	new_l->slides = parse_slides_str(panel_get_value(slides_panel));
+	#endif
 	p1.x = panel_get_dim_value(x1_panel);
 	p1.y = panel_get_dim_value(y1_panel);
 	p2.x = panel_get_dim_value(x2_panel);
@@ -2265,7 +2306,7 @@ void make_window_text(F_text *t)
 	new_ps_font = new_t->font;	/* get current font */
     else
 	new_latex_font = new_t->font;	/* get current font */
-    generic_window("TEXT", "", &text_ic, done_text, NO_GENERICS, NO_ARROWS, t->comments);
+    generic_window("TEXT", "", &text_ic, done_text, NO_GENERICS, NO_ARROWS, t->comments IF_SLIDES(COMMA t->slides));
 
     (void) int_panel(new_t->size, form, "      Size", (Widget) 0, &cur_fontsize_panel,
 				MIN_FONT_SIZE, MAX_FONT_SIZE, 1);
@@ -2427,6 +2468,10 @@ get_new_text_values(void)
     new_t->cstring = strdup(panel_get_value(text_panel));
     /* get any comments */
     new_t->comments = strdup(panel_get_value(comments_panel));
+    #ifdef SLIDES_SUPPORT
+    /* get any slides */
+    new_t->slides = parse_slides_str(panel_get_value(slides_panel));
+    #endif
     /* get the fontstruct for zoom = 1 to get the size of the string */
     canvas_font = lookfont(x_fontnum(psfont_text(new_t), new_t->font), new_t->size);
     size = textsize(canvas_font, strlen(new_t->cstring), new_t->cstring);
@@ -2522,7 +2567,7 @@ void make_window_ellipse(F_ellipse *e)
 	break;
     }
     put_generic_vals(new_e);
-    generic_window(s1, s2, image, done_ellipse, GENERICS, NO_ARROWS, e->comments);
+    generic_window(s1, s2, image, done_ellipse, GENERICS, NO_ARROWS, e->comments IF_SLIDES(COMMA e->slides));
     if (new_e->type == T_ELLIPSE_BY_RAD || new_e->type == T_ELLIPSE_BY_DIA) {
 	(void) int_panel(round(180 / M_PI * new_e->angle), form, "Angle (degrees)",
 	      (Widget) 0, &angle_panel, -360, 360, 1);
@@ -2659,7 +2704,7 @@ void make_window_arc(F_arc *a)
 
     /* create main window */
     generic_window("ARC", "Specified by 3 points", &arc_ic, done_arc,
-			GENERICS, ARROWS, a->comments);
+			GENERICS, ARROWS, a->comments IF_SLIDES(COMMA a->slides));
     save_form = form;
     /* put the points panel in a sub-form */
     FirstArg(XtNborderWidth, 0);
@@ -2782,32 +2827,32 @@ void make_window_spline(F_spline *s)
     switch (new_s->type) {
       case T_OPEN_APPROX:
 	generic_window("SPLINE", "Open approximated spline", &spl_ic,
-		       done_spline, GENERICS, ARROWS, s->comments);
+		       done_spline, GENERICS, ARROWS, s->comments IF_SLIDES(COMMA s->slides));
 	points_panel(new_s->points);
 	break;
       case T_CLOSED_APPROX:
 	generic_window("SPLINE", "Closed approximated spline", &c_spl_ic,
-		       done_spline, GENERICS, NO_ARROWS, s->comments); /* no arrowheads */
+		       done_spline, GENERICS, NO_ARROWS, s->comments IF_SLIDES(COMMA s->slides)); /* no arrowheads */
 	points_panel(new_s->points);
 	break;
       case T_OPEN_INTERP:
 	generic_window("SPLINE", "Open interpolated spline", &intspl_ic,
-		       done_spline, GENERICS, ARROWS, s->comments);
+		       done_spline, GENERICS, ARROWS, s->comments IF_SLIDES(COMMA s->slides));
 	points_panel(new_s->points);
 	break;
       case T_CLOSED_INTERP:
 	generic_window("SPLINE", "Closed interpolated spline", &c_intspl_ic,
-		       done_spline, GENERICS, NO_ARROWS, s->comments); /* no arrowheads */
+		       done_spline, GENERICS, NO_ARROWS, s->comments IF_SLIDES(COMMA s->slides)); /* no arrowheads */
 	points_panel(new_s->points);
 	break;
       case T_OPEN_XSPLINE:
 	generic_window("SPLINE", "X-Spline open", &xspl_ic,
-		       done_spline, GENERICS, ARROWS, s->comments);
+		       done_spline, GENERICS, ARROWS, s->comments IF_SLIDES(COMMA s->slides));
 	points_panel(new_s->points);
 	break;
       case T_CLOSED_XSPLINE:
 	generic_window("SPLINE", "X-Spline closed", &c_xspl_ic,
-		       done_spline, GENERICS, ARROWS, s->comments);
+		       done_spline, GENERICS, ARROWS, s->comments IF_SLIDES(COMMA s->slides));
 	points_panel(new_s->points);
 	break;
     }
@@ -2941,6 +2986,10 @@ new_generic_values(void)
     generic_vals.depth = atoi(panel_get_value(depth_panel));
     /* get the comments */
     generic_vals.comments = strdup(panel_get_value(comments_panel));
+    #ifdef SLIDES_SUPPORT
+    /* get the slides */
+    generic_vals.slides = parse_slides_str(panel_get_value(slides_panel));
+    #endif
     /* include dash length in panel, too */
     generic_vals.style_val = (float) atof(panel_get_value(style_val_panel));
     if (generic_vals.style == DASH_LINE || generic_vals.style == DOTTED_LINE ||
@@ -3017,6 +3066,10 @@ done_button(Widget panel_local, XtPointer closure, XtPointer call_data)
     button_result = DONE;
     done_proc();
     reset_edit_cursor();
+    #ifdef SLIDES_SUPPORT
+    /* FIXME: update only when slides are edited */
+    update_slides();
+    #endif
     Quit();
 }
 
@@ -3028,6 +3081,10 @@ apply_button(Widget panel_local, XtPointer closure, XtPointer call_data)
     /* make sure current colormap is installed */
     set_cmap(XtWindow(popup));
     done_proc();
+    #ifdef SLIDES_SUPPORT
+    /* FIXME: update only when slides are edited */
+    update_slides();
+    #endif
 }
 
 static void
@@ -3070,7 +3127,7 @@ void reset_edit_cursor(void)
 }
 
 static void
-generic_window(char *object_type, char *sub_type, icon_struct *icon, void (*d_proc) (/* ??? */), Boolean generics, Boolean arrows, char *comments)
+generic_window(char *object_type, char *sub_type, icon_struct *icon, void (*d_proc) (/* ??? */), Boolean generics, Boolean arrows, char *comments IF_SLIDES(COMMA slides_t slides))
 {
     Dimension	    label_height, image_height;
     int		    button_distance;
@@ -3268,6 +3325,51 @@ generic_window(char *object_type, char *sub_type, icon_struct *icon, void (*d_pr
     XtOverrideTranslations(comments_panel,
 		    XtParseTranslationTable(edit_comment_translations));
 
+    #ifdef SLIDES_SUPPORT
+    /* SLIDES */
+    FirstArg(XtNfromVert, below);
+    NextArg(XtNborderWidth, 0);
+    NextArg(XtNtop, XtChainTop);
+    NextArg(XtNbottom, XtChainTop);
+    NextArg(XtNleft, XtChainLeft);
+    NextArg(XtNright, XtChainLeft);
+    /* allow enough height for 1 line + scrollbar */
+    NextArg(XtNheight, max_char_height(temp_font) * 1 + 20);
+    below = XtCreateManagedWidget("Slides (csv)", labelWidgetClass,
+				       form, Args, ArgCount);
+
+    /* get the font of above label widget */
+    FirstArg(XtNfont, &temp_font);
+    GetValues(below);
+
+    /* make text widget for any slide lines */
+    FirstArg(XtNfromVert, below);
+    NextArg(XtNvertDistance, 2);
+    /* FIXME: add my_strdup(slides_to_str (slides)) ??? */
+    NextArg(XtNstring, slides_to_str (slides, ""));
+    NextArg(XtNinsertPosition, 0);
+    NextArg(XtNeditType, XawtextEdit);
+    if (!strcmp(sub_type,"Picture Object")) {
+	NextArg(XtNwidth, 415);		/* as wide as picture filename widget below */
+    } else {
+	NextArg(XtNwidth, 300);
+    }
+    NextArg(XtNtop, XtChainTop);
+    NextArg(XtNbottom, XtChainBottom);
+    NextArg(XtNleft, XtChainLeft);
+    NextArg(XtNright, XtChainRight);
+    /* allow enough height for 1 lines + scrollbar */
+    NextArg(XtNheight, max_char_height(temp_font) * 1 + 20);
+    NextArg(XtNscrollHorizontal, XawtextScrollWhenNeeded);
+    NextArg(XtNscrollVertical, XawtextScrollWhenNeeded);
+
+
+
+    slides_panel = below = XtCreateManagedWidget("slides", asciiTextWidgetClass, 
+				form, Args, ArgCount);
+    XtOverrideTranslations(slides_panel,
+		    XtParseTranslationTable(edit_slides_translations));
+    #endif
     /***************** COMMON PARAMETERS *****************/
 
     if (generics) {

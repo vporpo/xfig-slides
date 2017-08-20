@@ -64,7 +64,6 @@ load_file(char *file, int xoff, int yoff)
     int		    s;
     F_compound	    c;
     fig_settings    settings;
-
     put_msg("Loading file %s...",file);
     c.parent = NULL;
     c.GABPtr = NULL;
@@ -115,6 +114,9 @@ load_file(char *file, int xoff, int yoff)
 	reset_modifiedflag();
 	/* update the recent list */
 	update_recent_list(file);
+	#ifdef SLIDES_SUPPORT
+	update_slides();
+	#endif
 	return 0;
     } else if (s == ENOENT || s == EMPTY_FILE) {
 	char fname[PATH_MAX];
@@ -134,9 +136,14 @@ load_file(char *file, int xoff, int yoff)
 	set_action(F_LOAD);
 	reset_cursor();
 	reset_modifiedflag();
+	#ifdef SLIDES_SUPPORT
+	update_slides();
+	#endif
 	return 0;
     }
-
+    #ifdef SLIDES_SUPPORT
+    update_slides();
+    #endif
     read_fail_message(file, s);
     reset_modifiedflag();
     reset_cursor();

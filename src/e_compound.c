@@ -86,7 +86,11 @@ open_this_compound(F_compound *c, Boolean vis)
      the compound when he closes it */
   update_indpanel(cur_indmask | I_POINTPOSN);
 
+  #ifdef SLIDES_SUPPORT
+  c->parent = d = (F_compound *) calloc(1, sizeof(F_compound));
+  #else
   c->parent = d = (F_compound *) malloc(sizeof(F_compound));
+  #endif
   *d = objects;			/* Preserve the parent, it points to c */
   objects = *c;
   objects.GABPtr = c;		/* Where original compound came from */
@@ -94,6 +98,9 @@ open_this_compound(F_compound *c, Boolean vis)
   if (!close_popup_isup)
 	popup_close_compound();
   redisplay_canvas();
+  #ifdef SLIDES_SUPPORT
+  update_slides();
+  #endif
 }
 
 void
@@ -150,6 +157,9 @@ close_compound(void)
 	close_popup_isup = False;
     }
     redisplay_canvas();
+    #ifdef SLIDES_SUPPORT
+    update_slides();
+    #endif
     /* re-select open compound mode */
     change_mode(&open_comp_ic);
     /* restore indicator panel mask */
@@ -188,6 +198,9 @@ close_all_compounds(void)
     XtDestroyWidget(close_compound_popup);
     close_popup_isup = False;
     redisplay_canvas();
+    #ifdef SLIDES_SUPPORT
+    update_slides();
+    #endif
     /* re-select open compound mode */
     change_mode(&open_comp_ic);
   }

@@ -37,6 +37,9 @@
 #include "d_box.h"
 #include "u_markers.h"
 #include "w_cursor.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 static void	create_compoundobject(int x, int y), cancel_tag_region(void),
 		init_tag_region(int x, int y), tag_region(int x, int y), tag_object(F_line *p, int type, int x, int y, int px, int py);
@@ -148,6 +151,9 @@ static void
 create_compoundobject(int x, int y)
 {
     F_compound	   *c;
+    #ifdef SLIDES_SUPPORT
+    collect_all_slides_info();
+    #endif
 
     if ((c = create_compound()) == NULL)
 	return;
@@ -189,6 +195,9 @@ create_compoundobject(int x, int y)
     set_modifiedflag();
     compound_selected();
     draw_mousefun_canvas();
+    #ifdef SLIDES_SUPPORT
+    update_slides();
+    #endif
 }
 
 void tag_obj_in_region(int xmin, int ymin, int xmax, int ymax)
@@ -211,6 +220,9 @@ int compose_compound(F_compound *c)
     c->arcs = NULL;
     c->comments = NULL;
     c->compounds = NULL;
+    #ifdef SLIDES_SUPPORT
+    c->slides = get_new_object_slides ();
+    #endif
     /* defer updating of layer buttons until we've composed the entire compound */
     defer_update_layers = True;
     get_ellipse(&c->ellipses);
@@ -245,6 +257,10 @@ sel_ellipse(int xmin, int ymin, int xmax, int ymax)
     for (e = objects.ellipses; e != NULL; e = e->next) {
 	if (!active_layer(e->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(e, O_ELLIPSE))
+	    continue;
+	#endif
 	if (xmin > e->center.x - e->radiuses.x)
 	    continue;
 	if (xmax < e->center.x + e->radiuses.x)
@@ -293,6 +309,10 @@ sel_arc(int xmin, int ymin, int xmax, int ymax)
     for (a = objects.arcs; a != NULL; a = a->next) {
 	if (!active_layer(a->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(a, O_ARC))
+	    continue;
+	#endif
 	arc_bound(a, &llx, &lly, &urx, &ury);
 	if (xmin > llx)
 	    continue;
@@ -342,6 +362,10 @@ sel_line(int xmin, int ymin, int xmax, int ymax)
     for (l = objects.lines; l != NULL; l = l->next) {
 	if (!active_layer(l->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(l, O_POLYLINE))
+	    continue;
+	#endif
 	for (inbound = 1, p = l->points; p != NULL && inbound;
 	     p = p->next) {
 	    inbound = 0;
@@ -396,6 +420,10 @@ sel_spline(int xmin, int ymin, int xmax, int ymax)
     for (s = objects.splines; s != NULL; s = s->next) {
 	if (!active_layer(s->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(s,O_SPLINE))
+	    continue;
+	#endif
 	spline_bound(s, &llx, &lly, &urx, &ury);
 	if (xmin > llx)
 	    continue;
@@ -445,6 +473,10 @@ sel_text(int xmin, int ymin, int xmax, int ymax)
     for (t = objects.texts; t != NULL; t = t->next) {
 	if (!active_layer(t->depth))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides(t, O_TXT))
+	    continue;
+	#endif
 	text_bound(t, &txmin, &tymin, &txmax, &tymax,
 			&dum,&dum,&dum,&dum,&dum,&dum,&dum,&dum);
 	if (xmin > txmin || xmax < txmax ||
@@ -488,6 +520,10 @@ sel_compound(int xmin, int ymin, int xmax, int ymax)
     for (c = objects.compounds; c != NULL; c = c->next) {
 	if (!any_active_in_compound(c))
 	    continue;
+	#ifdef SLIDES_SUPPORT
+	if (!active_object_slides (c, O_COMPOUND))
+	    continue;
+	#endif
 	if (xmin > c->nwcorner.x)
 	    continue;
 	if (xmax < c->secorner.x)
@@ -512,7 +548,7 @@ get_compound(F_compound **list)
 	    c = c->next;
 	    continue;
 	}
-	remove_compound_depth(c);
+	remove_compound_depth(c IF_SLIDES_ARG(True));
 	if (*list == NULL)
 	    *list = c;
 	else

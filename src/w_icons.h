@@ -2,6 +2,7 @@
  * FIG : Facility for Interactive Generation of figures
  * Copyright (c) 1985-1988 by Supoj Sutanthavibul
  * Parts Copyright (c) 1989-2007 by Brian V. Smith
+ * Parts Copyright (c) 2013 by Vasileios Porpodas (slides support)
  *
  * Any party obtaining a copy of these files is granted, free of charge, a
  * full and unrestricted irrevocable, world-wide, paid up, royalty-free,
@@ -126,6 +127,7 @@ extern icon_struct	tangent_ic;
 extern icon_struct	anglemeas_ic;
 extern icon_struct	lenmeas_ic;
 extern icon_struct	areameas_ic;
+extern icon_struct	kick_slides_ic;
 
 /* misc icons */
 

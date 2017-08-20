@@ -17,6 +17,9 @@
 
 #ifndef OBJECT_H
 #define OBJECT_H
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 /* values to signify color used for transparent GIF color */
 
@@ -171,7 +174,13 @@ typedef struct f_ellipse {
     struct f_pos    start;
     struct f_pos    end;
     char	   *comments;
+    #ifdef SLIDES_SUPPORT
+    slides_t	   slides;
+    #endif
     struct f_ellipse *next;
+    #ifdef SLIDES_SUPPORT
+    char extra;			/* operation specific data */
+    #endif
 }
 	F_ellipse;
 
@@ -214,7 +223,13 @@ typedef struct f_arc {
     }		    center;
     struct f_pos    point[3];
     char	   *comments;
+    #ifdef SLIDES_SUPPORT
+    slides_t	   slides;
+    #endif
     struct f_arc   *next;
+    #ifdef SLIDES_SUPPORT
+    char extra;			/* operation specific data */
+    #endif
 }
 	F_arc;
 
@@ -238,6 +253,10 @@ typedef struct f_pic {
 		    pix_width,		/* current width of pixmap (pixels) */
 		    pix_height,		/* current height of pixmap (pixels) */
 		    pix_flipped;
+    #ifdef SLIDES_SUPPORT
+    slides_t          slides;
+    char extra;			/* operation specific data */
+    #endif
 }
 	F_pic;
 
@@ -283,7 +302,13 @@ typedef struct f_line {
     int		    radius;	/* corner radius for T_ARCBOX */
     F_pic	   *pic;	/* picture object, if type = T_PICTURE */
     char	   *comments;
+    #ifdef SLIDES_SUPPORT
+    slides_t slides;
+    #endif
     struct f_line  *next;
+    #ifdef SLIDES_SUPPORT
+    char extra;			/* operation specific data */
+    #endif
 }
 	F_line;
 
@@ -320,7 +345,13 @@ typedef struct f_text {
     int		    pen_style;
     char	   *cstring;
     char	   *comments;
+    #ifdef SLIDES_SUPPORT
+    slides_t  slides;
+    #endif
     struct f_text  *next;
+    #ifdef SLIDES_SUPPORT
+    char extra;			/* operation specific data */
+    #endif
 }
 	F_text;
 
@@ -398,7 +429,13 @@ typedef struct f_spline {
 
     struct f_shape *sfactors;
     char	   *comments;
+    #ifdef SLIDES_SUPPORT
+    slides_t	   slides;
+    #endif
     struct f_spline *next;
+    #ifdef SLIDES_SUPPORT
+    char extra;			/* operation specific data */
+    #endif
 }
 	F_spline;
 
@@ -427,11 +464,15 @@ typedef struct f_compound {
     struct f_text     *texts;
     struct f_arc      *arcs;
     char	      *comments;
+#ifdef SLIDES_SUPPORT
+    slides_t          slides;
+#endif
     struct f_compound *parent;	/* for "open/close compound" */
     struct f_compound *GABPtr;	/* Where original compound came from */
     Boolean	       draw_parent;
     struct f_compound *compounds;
     struct f_compound *next;
+  char extra;			/* operation specific data */
 }
 	F_compound;
 

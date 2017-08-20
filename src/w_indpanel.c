@@ -46,6 +46,9 @@
 #include "w_canvas.h"
 #include "w_grid.h"
 #include "w_rulers.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 #define MAX_SCROLL_WD 50
 
@@ -53,6 +56,9 @@
 
 Boolean	update_buts_managed;
 Widget	choice_popup;
+#ifdef SLIDES_SUPPORT
+Widget	slides_update_label, slides_update_txt;
+#endif
 void	show_depth(ind_sw_info *sw), show_zoom(ind_sw_info *sw);
 void	show_fillstyle(ind_sw_info *sw);
 void	fontpane_popup(int *psfont_adr, int *latexfont_adr, int *psflag_adr, void (*showfont_fn) (/* ??? */), Widget show_widget);
@@ -99,14 +105,31 @@ static String set_translations =
 static String   nval_translations =
 	"<Key>Escape: QuitNval()\n\
         <Message>WM_PROTOCOLS: QuitNval()\n";
+#ifdef SLIDES_SUPPORT
+static String   slides_update_translations =
+	"<Key>Escape: QuitSlides()\n\
+        <Message>WM_PROTOCOLS: QuitSlides()\n\
+         <Key>Return: SetSlides()\n";
+#endif
 
 static void	nval_panel_set(Widget w, XButtonEvent *ev);
 static void	nval_panel_cancel(Widget w, XButtonEvent *ev);
+#ifdef SLIDES_SUPPORT
+static void	slides_update_panel_cancel(Widget w, XButtonEvent *ev);
+static void	slides_update_panel_set(Widget w, XButtonEvent *ev);
+#endif
 static XtActionsRec     nval_actions[] =
 {
     {"SetValue", (XtActionProc) nval_panel_set},
     {"QuitNval", (XtActionProc) nval_panel_cancel},
 };
+#ifdef SLIDES_SUPPORT
+static XtActionsRec     slides_update_actions[] =
+{
+    {"SetSlides", (XtActionProc) slides_update_panel_set},
+    {"QuitSlides", (XtActionProc) slides_update_panel_cancel},
+};
+#endif
 
 /***** dimension line panel translations *****/
 static	void	dimline_panel_cancel(Widget w, XButtonEvent *ev);
@@ -166,6 +189,9 @@ static	void	inc_depth(ind_sw_info *sw), dec_depth(ind_sw_info *sw);
 static	void	show_tangnormlen(ind_sw_info *sw), inc_tangnormlen(ind_sw_info *sw), dec_tangnormlen(ind_sw_info *sw);
 static	void	show_dimline(ind_sw_info *sw), inc_dimline(ind_sw_info *sw), dec_dimline(ind_sw_info *sw);
 static	void	dimline_style_select(Widget w, XtPointer new_style, XtPointer call_data);
+#ifdef SLIDES_SUPPORT
+static	void	show_slides(ind_sw_info *sw);
+#endif
 static	void	popup_fonts(ind_sw_info *sw);
 static	void	note_state(Widget w, XtPointer closure, XtPointer call_data);
 static void set_all_update(Widget w, XtPointer data, XEvent *event, Boolean *cont);
@@ -465,6 +491,10 @@ ind_sw_info	ind_switches[] = {
 	NULL, &cur_textstep, inc_textstep, dec_textstep, show_textstep, 0, 1000, 0.1},
     {I_IVAL, I_FONT, "Text", "Font", FONT_IND_SW_WD,
 	&cur_ps_font, NULL, inc_font, dec_font, show_font, 0, 0, 0.0},
+#ifdef SLIDES_SUPPORT
+    {I_SLIDES, I_SLIDES, "Slides (csv)", "", SLIDES_IND_SW_WD,
+     &cur_slides, NULL, NULL, NULL, show_slides, 0, 0, 0.0},
+#endif
 };
 
 #define		NUM_IND_SW	(sizeof(ind_switches) / sizeof(ind_sw_info))
@@ -1170,6 +1200,10 @@ sel_ind_but(Widget widget, XtPointer closure, XEvent *event, Boolean *continue_t
 	    popup_choice_panel(isw);
 	else if (isw->type == I_DIMLINE)
 	    popup_dimline_panel(isw);
+#ifdef SLIDES_SUPPORT
+	else if (isw->type == I_SLIDES)
+	    popup_slides_update_panel(isw);
+#endif
     }
 }
 
@@ -1224,8 +1258,13 @@ static ind_sw_info *choice_i;
 static Widget	nval_popup, form, cancel, set;
 static Widget	beside, below, newvalue, label;
 static Widget	dash_length, dot_gap;
+#ifdef SLIDES_SUPPORT
+static Widget	slides_update_popup;
+#endif
 static ind_sw_info *nval_i;
-
+#ifdef SLIDES_SUPPORT
+static ind_sw_info *slides_i;
+#endif
 /* handle arrow sizes settings */
 
 static Widget   arrow_thick_w, arrow_width_w, arrow_height_w;
@@ -2135,6 +2174,16 @@ nval_panel_dismiss(void)
     XtSetSensitive(nval_i->button, True);
 }
 
+#ifdef SLIDES_SUPPORT
+static void
+slides_update_panel_dismiss(void)
+{
+    XtDestroyWidget(slides_update_popup);
+    /* XtSetSensitive(slides_i->button, True); */
+}
+#endif
+
+
 Widget zoomcheck;
 
 static void
@@ -2155,6 +2204,14 @@ nval_panel_cancel(Widget w, XButtonEvent *ev)
     nval_panel_dismiss();
 }
 
+#ifdef SLIDES_SUPPORT
+static void
+slides_update_panel_cancel(Widget w, XButtonEvent *ev)
+{
+    slides_update_panel_dismiss();
+}
+#endif
+
 static void
 nval_panel_set(Widget w, XButtonEvent *ev)
 {
@@ -2171,6 +2228,30 @@ nval_panel_set(Widget w, XButtonEvent *ev)
     nval_panel_dismiss();
     show_action(nval_i);
 }
+
+#ifdef SLIDES_SUPPORT
+static void
+slides_update_panel_set(Widget w, XButtonEvent *ev)
+{
+  char *update_slides_str;
+  /* FIXME: is strdup() required??? */
+  char *slides_str = panel_get_value(slides_update_txt);
+  /* If empty input string, set the current slides */
+  if (strlen(slides_str) == 0) {
+    int si;
+    cur_slides = get_new_slides ();
+    FOR_EACH_SELECTED_SLIDE(si) {
+      slide_set(cur_slides, si, True);
+    }
+  } else {
+    cur_slides = parse_slides_str (slides_str);
+  }
+  put_msg("Slides: %s", slides_str);
+  slides_update_panel_dismiss();
+  show_action(slides_i);
+  /* free (cur_slides); */
+}
+#endif
 
 
 void popup_nval_panel(ind_sw_info *isw)
@@ -2334,6 +2415,109 @@ void popup_nval_panel(ind_sw_info *isw)
 
     XtInstallAccelerators(form, cancel);
 }
+
+#ifdef SLIDES_SUPPORT
+void popup_slides_update_panel(ind_sw_info *isw)
+{
+    Position	    x_val, y_val;
+    Dimension	    width, height;
+    static Boolean  actions_added=False;
+    XFontStruct	   *temp_font;
+    /* slides_i = isw; */
+    /* XtSetSensitive(slides_i->button, False); */
+
+    slides_i = isw;
+
+    FirstArg(XtNwidth, &width);
+    NextArg(XtNheight, &height);
+    GetValues(tool);
+    /* position the popup 1/3 in from left and 2/3 down from top */
+    XtTranslateCoords(tool, (Position) (width / 3), (Position) (2 * height / 3),
+		      &x_val, &y_val);
+
+    FirstArg(XtNx, x_val);
+    NextArg(XtNy, y_val);
+    NextArg(XtNtitle, "Xfig: Text Flags Panel");
+    NextArg(XtNcolormap, tool_cm);
+
+    slides_update_popup = XtCreatePopupShell("slides_update_panel",
+				    transientShellWidgetClass, tool,
+				    Args, ArgCount);
+
+    XtOverrideTranslations(slides_update_popup,
+                       XtParseTranslationTable(slides_update_translations));
+    if (!actions_added) {
+        XtAppAddActions(tool_app, slides_update_actions, XtNumber(slides_update_actions));
+	actions_added = True;
+    }
+    form = XtCreateManagedWidget("slides_update_form", formWidgetClass, slides_update_popup, NULL, 0);
+
+    /* Slides label */
+    FirstArg(XtNfromVert, 0);
+    NextArg(XtNborderWidth, 0);
+    NextArg(XtNtop, XtChainTop);
+    NextArg(XtNbottom, XtChainTop);
+    NextArg(XtNleft, XtChainLeft);
+    NextArg(XtNright, XtChainLeft);
+    slides_update_label = XtCreateManagedWidget("Slides (csv):", labelWidgetClass,
+				       form, Args, ArgCount);
+
+
+    /* Slides txt */
+    FirstArg(XtNfromVert, slides_update_label);
+    NextArg(XtNvertDistance, 2);
+    NextArg(XtNwidth, 200);
+    NextArg(XtNstring, selected_slides_str ());
+    NextArg(XtNinsertPosition, 0);
+    NextArg(XtNeditType, XawtextEdit);
+    NextArg(XtNtop, XtChainTop);
+    NextArg(XtNbottom, XtChainTop);
+    NextArg(XtNleft, XtChainLeft);
+    NextArg(XtNright, XtChainLeft);
+    NextArg(XtNscrollHorizontal, XawtextScrollWhenNeeded);
+    NextArg(XtNscrollVertical, XawtextScrollWhenNeeded);
+    slides_update_txt = XtCreateManagedWidget("slides_update_txt", asciiTextWidgetClass, 
+				form, Args, ArgCount);
+    XtOverrideTranslations(slides_update_txt,
+		    XtParseTranslationTable(slides_update_translations));
+
+
+    /* Buttons */
+    FirstArg(XtNlabel, "Cancel");
+    NextArg(XtNfromVert, slides_update_txt);
+    NextArg(XtNborderWidth, INTERNAL_BW);
+    NextArg(XtNtop, XtChainTop);
+    NextArg(XtNbottom, XtChainTop);
+    NextArg(XtNleft, XtChainLeft);
+    NextArg(XtNright, XtChainLeft);
+    cancel = XtCreateManagedWidget("cancel", commandWidgetClass,
+				   form, Args, ArgCount);
+    XtAddEventHandler(cancel, ButtonReleaseMask, False,
+		      (XtEventHandler) slides_update_panel_cancel, (XtPointer) NULL);
+
+    FirstArg(XtNlabel, " Set  ");
+    NextArg(XtNfromVert, slides_update_txt);
+    NextArg(XtNfromHoriz, cancel);
+    NextArg(XtNborderWidth, INTERNAL_BW);
+    NextArg(XtNtop, XtChainTop);
+    NextArg(XtNbottom, XtChainTop);
+    NextArg(XtNleft, XtChainLeft);
+    NextArg(XtNright, XtChainLeft);
+    set = XtCreateManagedWidget("set", commandWidgetClass,
+				form, Args, ArgCount);
+    XtAddEventHandler(set, ButtonReleaseMask, False,
+		      (XtEventHandler) slides_update_panel_set, (XtPointer) NULL);
+
+    XtPopup(slides_update_popup, XtGrabExclusive);
+    /* if the file message window is up add it to the grab */
+    file_msg_add_grab();
+    (void) XSetWMProtocols(tool_d, XtWindow(slides_update_popup), &wm_delete_window, 1);
+    /* insure that the most recent colormap is installed */
+    set_cmap(XtWindow(slides_update_popup));
+
+    XtInstallAccelerators(form, cancel);
+}
+#endif
 
 /**********************/
 /*   DIMENSION LINE   */
@@ -4837,3 +5021,16 @@ tog_selective_update(long unsigned int mask)
     cur_indmask=mask;
     cur_updatemask =mask;
 }
+
+#ifdef SLIDES_SUPPORT
+static void
+show_slides(ind_sw_info *sw)
+{
+  collect_all_slides_info();
+  int slides_num = all_slides.num_active;
+  char *update_slides_str = slides_to_str(cur_slides, "");
+  put_msg ("Slides (%d found): %s", slides_num, update_slides_str);
+  sprintf (indbuf, "%-40s", update_slides_str);
+  update_string_pixmap(sw, indbuf,3,28);
+}
+#endif

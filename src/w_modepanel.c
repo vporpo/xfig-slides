@@ -64,6 +64,9 @@
 #include "w_setup.h"
 #include "w_util.h"
 #include "d_spline.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 /* EXPORTS */
 
@@ -116,6 +119,9 @@ static void	stub_anglemeas_selected(void);
 static void	stub_lenmeas_selected(void);
 static void	stub_areameas_selected(void);
 static void	stub_tangent_selected(void);
+#ifdef SLIDES_SUPPORT
+static void	stub_kick_object_slides_selected(void);
+#endif
 
 /**************	    local variables and routines   **************/
 
@@ -270,6 +276,11 @@ mode_sw_info mode_switches[] = {
     {&areameas_ic, F_AREAMEAS, areameas_selected, M_AREAMEAS_OBJECT,
        I_MIN2,
        "Measure AREA of polygons, arcs and ellipses   (Ctrl-m)", False},
+    #ifdef SLIDES_SUPPORT
+    {&kick_slides_ic, F_KICK_SLIDES, kick_slides_selected, M_ALL,
+       0,
+       "Kick objects to other slides (k)", False},
+    #endif
 
     /* This must be last for create_mode_panel() (in w_canvas.c) */
     { NULL, 0 }
@@ -348,6 +359,11 @@ static XtActionsRec mode_actions[] =
     {"ModeAnglemeas", (XtActionProc) stub_anglemeas_selected},
     {"ModeLenmeas", (XtActionProc) stub_lenmeas_selected},
     {"ModeAreameas", (XtActionProc) stub_areameas_selected},
+#ifdef SLIDES_SUPPORT
+    {"ModeKickObjectSlides", (XtActionProc) stub_kick_object_slides_selected},
+    {"SlidesPlay", (XtActionProc) stub_slides_play},
+    {"SlidesRPlay", (XtActionProc) stub_slides_rplay},
+#endif
 };
 
 static String   mode_translations =
@@ -966,5 +982,12 @@ stub_areameas_selected(void)
 	change_mode(&areameas_ic);
 }
 
+#ifdef SLIDES_SUPPORT
+static void
+stub_kick_object_slides_selected(void)
+{
+	change_mode(&kick_slides_ic);
+}
+#endif
 
 

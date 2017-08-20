@@ -32,6 +32,9 @@
 
 #include "u_draw.h"
 #include "u_markers.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 /*************************************/
 /****** DELETE object from list ******/
@@ -171,7 +174,7 @@ list_delete_compound(F_compound **list, F_compound *compound)
 	return;
 
     if (list == &objects.compounds)
-	remove_compound_depth(compound);
+	remove_compound_depth(compound IF_SLIDES_ARG(True));
 
     for (cc = c = *list; c != NULL; cc = c, c = c->next) {
 	if (c == compound) {
@@ -247,10 +250,14 @@ remove_depth(int type, int depth)
     }
     /* adjust the layer buttons */
     update_layers();
+    #ifdef SLIDES_SUPPORT
+    update_slides ();
+    #endif
 }
 
+/* Update slides only if DO_UPDATE_SLIDES is TRUE */
 void
-remove_compound_depth(F_compound *comp)
+remove_compound_depth(F_compound *comp IF_SLIDES_ARG(Boolean do_update_slides))
 {
     F_arc	   *aa;
     F_ellipse	   *ee;
@@ -275,10 +282,15 @@ remove_compound_depth(F_compound *comp)
     for (tt=comp->texts; tt; tt=tt->next)
 	remove_depth(O_TXT, tt->depth);
     for (cc=comp->compounds; cc; cc=cc->next)
-	remove_compound_depth(cc);
+	remove_compound_depth(cc IF_SLIDES_ARG(do_update_slides));
     /* decrement the defer flag and update layer buttons if it hits 0 */
     defer_update_layers--;
     update_layers();
+    #ifdef SLIDES_SUPPORT
+    if (do_update_slides) {
+        update_slides();
+    }
+    #endif
 }
 
 
@@ -449,6 +461,9 @@ add_depth(int type, int depth)
     }
     /* adjust the layer buttons */
     update_layers();
+    #ifdef SLIDES_SUPPORT
+    update_slides();
+    #endif
 }
 
 void
@@ -478,6 +493,9 @@ add_compound_depth(F_compound *comp)
     /* decrement the defer flag and update layer buttons if it hits 0 */
     defer_update_layers--;
     update_layers();
+    #ifdef SLIDES_SUPPORT
+    /* update_slides(); */
+    #endif
 }
 
 /**********************************/
@@ -756,50 +774,38 @@ void append_objects(F_compound *l1, F_compound *l2, F_compound *tails)
 	l1->texts = l2->texts;
 }
 
-/* Cut is the dual of append. */
-
-void cut_objects(F_compound *objects, F_compound *tails)
+/* Cut is the dual of append. Update slides only if DO_UPDATE_SLIDES is set */
+void cut_objects(F_compound *objects, F_compound *tails
+                 IF_SLIDES_ARG(Boolean do_update_slides))
 {
     if (tails->arcs) {
-	remove_arc_depths(tails->arcs->next);
 	tails->arcs->next = NULL;
     } else if (objects->arcs) {
-	remove_arc_depths(objects->arcs);
 	objects->arcs = NULL;
     }
     if (tails->compounds) {
-	remove_compound_depth(tails->compounds->next);
 	tails->compounds->next = NULL;
     } else if (objects->compounds) {
-	remove_compound_depth(objects->compounds);
 	objects->compounds = NULL;
     }
     if (tails->ellipses) {
-	remove_ellipse_depths(tails->ellipses->next);
 	tails->ellipses->next = NULL;
     } else if (objects->ellipses) {
-	remove_ellipse_depths(objects->ellipses);
 	objects->ellipses = NULL;
     }
     if (tails->lines) {
-	remove_line_depths(tails->lines->next);
 	tails->lines->next = NULL;
     } else if (objects->lines) {
-	remove_line_depths(objects->lines);
 	objects->lines = NULL;
     }
     if (tails->splines) {
-	remove_spline_depths(tails->splines->next);
 	tails->splines->next = NULL;
     } else if (objects->splines) {
-	remove_spline_depths(objects->splines);
 	objects->splines = NULL;
     }
     if (tails->texts) {
-	remove_text_depths(tails->texts->next);
 	tails->texts->next = NULL;
     } else if (objects->texts) {
-	remove_text_depths(objects->texts);
 	objects->texts = NULL;
     }
 }

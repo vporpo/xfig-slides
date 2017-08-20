@@ -46,6 +46,10 @@
 #include "w_color.h"
 #include "w_cursor.h"
 
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
+
 #define	FILE_WID	157	/* width of Current file etc to show preview to the right */
 #define FILE_ALT_WID	260	/* width of file alternatives panel */
 #define PREVIEW_CANVAS_W 232	/* width of landscape preview canvas (swap W, H for portrait) */
@@ -56,6 +60,9 @@
 enum file_modes {
 	F_SAVEAS,
 	F_OPEN,
+#ifdef SLIDES_SUPPORT
+	F_SLIDES,
+#endif
 	F_MERGE
 };
 
@@ -110,6 +117,9 @@ DeclareStaticArgs(15);
 static Widget	file_stat_label, file_status, num_obj_label, num_objects;
 static Widget	figure_off, cfile_lab;
 static Widget	cancel_button, save_button, merge_button;
+#ifdef SLIDES_SUPPORT
+static Widget	slides_button;
+#endif
 static Widget	load_button, new_xfig_button;
 static Widget	fig_offset_lbl_x, fig_offset_lbl_y;
 static Widget	fig_offset_x, fig_offset_y;
@@ -261,6 +271,10 @@ do_merge(Widget w, XButtonEvent *ev)
     image_colors_are_saved = False;
     /* dismiss the panel */
     file_panel_dismiss();
+
+#ifdef SLIDES_SUPPORT
+    update_slides();
+#endif
 }
 
 /*
@@ -491,6 +505,18 @@ do_save(Widget w, XButtonEvent *ev)
 	    if (!ok_to_write(fname, "SAVE"))
 		return;
 	    XtSetSensitive(save_button, False);
+#ifdef SLIDES_SUPPORT
+		/* Emit all slide numbers for the saved .fig file */
+		/* If we have pressed the SAVE SLIDES button */
+		emit_all_slides = True;
+		if (sv_slides) {
+			/* Don't emit the slides string in the slides files */
+			save_slide_files();
+			sv_slides = False;
+			/* For the single .fig file do emit the slides string. */
+			emit_all_slides = True;
+		} else {
+#endif
 	    if (appres.write_bak == True)
 		(void) renamefile(fname);
 	    if (write_file(fname, True) == 0) {
@@ -504,6 +530,9 @@ do_save(Widget w, XButtonEvent *ev)
 		if (file_up)
 		    file_panel_dismiss();
 	    }
+#ifdef SLIDES_SUPPORT
+		}
+#endif
 	    XtSetSensitive(save_button, True);
 	}
     } else {
@@ -511,11 +540,23 @@ do_save(Widget w, XButtonEvent *ev)
 	if (!ok_to_write(cur_filename, "SAVE"))
 	    return;
 	/* not using popup => filename not changed so ok to write existing file */
+#ifdef SLIDES_SUPPORT
+	emit_all_slides = True;
+	if (sv_slides) {
+		/* Don't emit slide strings when generating slide files */
+		save_slide_files();
+		/* Do emit slide strings for the individual .fig file */
+		sv_slides = False;
+	} else {
+#endif
 	warnexist = False;
 	(void) renamefile(cur_filename);
 	if (write_file(cur_filename, True) == 0)
 	    reset_modifiedflag();
     }
+#ifdef SLIDES_SUPPORT
+	}
+#endif
 }
 
 /* try to rename current to current.bak */
@@ -551,6 +592,29 @@ query_save(char *msg)
     /* ok */
     return True;
 }
+
+#ifdef SLIDES_SUPPORT
+Boolean
+query_save_slides(char *msg)
+{
+    int		    qresult;
+    if (!emptyfigure() && figure_modified && !aborting) {
+	if ((qresult = popup_query(QUERY_YESNOCAN, msg)) == RESULT_CANCEL)
+	    return False;
+	else if (qresult == RESULT_YES) {
+	    do_save_slides((Widget) 0, (XButtonEvent *) 0);
+	    /*
+	     * if saving was not successful, figure_modified is still true:
+	     * do not quit!
+	     */
+	    if (figure_modified)
+		return False;
+	}
+    }
+    /* ok */
+    return True;
+}
+#endif
 
 static void
 cancel_request(Widget w, XButtonEvent *ev)
@@ -596,6 +660,14 @@ popup_merge_panel(void)
 {
 	popup_file_panel(F_MERGE);
 }
+
+#ifdef SLIDES_SUPPORT
+void
+popup_file_slides_panel(void)
+{
+	popup_file_panel(F_SLIDES);
+}
+#endif
 
 static void
 popup_file_panel(int mode)
@@ -645,6 +717,9 @@ popup_file_panel(int mode)
 	    XtUnmanageChild(load_button);
 	    XtUnmanageChild(merge_button);
 	    XtManageChild(save_button);
+#ifdef SLIDES_SUPPORT
+	    XtManageChild(slides_button);
+#endif
 	    FirstArg(XtNtitle, "Xfig: SaveAs");
 	    SetValues(file_popup);
 	    /* make <return> in the filename window save the file */
@@ -668,6 +743,21 @@ popup_file_panel(int mode)
 	    XtOverrideTranslations(file_flist,
 			   XtParseTranslationTable(file_list_load_translations));
 
+#ifdef SLIDES_SUPPORT
+	} else if (mode == F_SLIDES) {
+	    XtUnmanageChild(load_button);
+	    XtUnmanageChild(merge_button);
+	    /* XtManageChild(save_button); */
+	    XtManageChild(slides_button);
+	    FirstArg(XtNtitle, "Xfig: Slides SaveAs");
+	    SetValues(file_popup);
+	    /* make <return> in the filename window save the file */
+	    XtOverrideTranslations(file_selfile,
+			   XtParseTranslationTable(file_name_saveas_translations));
+	    /* make <return> and a double click in the file list window save the file */
+	    XtOverrideTranslations(file_flist,
+			   XtParseTranslationTable(file_list_saveas_translations));
+#endif
 	} else { /* must be F_MERGE */
 	    XtUnmanageChild(save_button);
 	    XtUnmanageChild(load_button);
@@ -728,6 +818,9 @@ void create_file_panel(void)
 	static Boolean   actions_added=False;
 	Widget		 preview_form;
 	Position	 xposn, yposn;
+#ifdef SLIDES_SUPPORT
+	extern Boolean sv_slides;
+#endif
 
 	xoff_unit_setting = yoff_unit_setting = (intptr_t) appres.INCHES? 0: 1;
 
@@ -1097,7 +1190,25 @@ void create_file_panel(void)
 				     file_panel, Args, ArgCount);
 	XtAddEventHandler(save_button, ButtonReleaseMask, False,
 			  (XtEventHandler) do_save, (XtPointer) NULL);
-
+#ifdef SLIDES_SUPPORT
+	/* Slides BEGIN */
+	FirstArg(XtNlabel, " Generate Slides "); /* Save Slides */
+	NextArg(XtNvertDistance, 15);
+	NextArg(XtNfromVert, butbelow);
+	NextArg(XtNfromHoriz, save_button);
+	NextArg(XtNhorizDistance, 25);
+	NextArg(XtNheight, 25);
+	NextArg(XtNborderWidth, INTERNAL_BW);
+	NextArg(XtNtop, XtChainBottom);
+	NextArg(XtNbottom, XtChainBottom);
+	NextArg(XtNleft, XtChainLeft);
+	NextArg(XtNright, XtChainLeft);
+	slides_button = XtCreateWidget("slides", commandWidgetClass,
+				     file_panel, Args, ArgCount);
+	XtAddEventHandler(slides_button, ButtonReleaseMask, False,
+			  (XtEventHandler) do_save_slides, (XtPointer) NULL);
+	/* Slides END */
+#endif
 	FirstArg(XtNlabel, " Open ");
 	NextArg(XtNborderWidth, INTERNAL_BW);
 	NextArg(XtNvertDistance, 15);

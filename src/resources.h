@@ -255,6 +255,9 @@ typedef struct _appres {
     Boolean	 rigidtext;
     Boolean	 hiddentext;
     Boolean	 showdepthmanager;	/* whether or not to display the depth manager */
+    #ifdef SLIDES_SUPPORT
+    Boolean	 showslidesmanager;	/* whether or not to display the slides manager */
+    #endif
     char	*grid_color;		/* color of grid (when on) */
     int		 smooth_factor;		/* smoothing factor when export to bitmap formats */
     Boolean	 icon_view;		/* icon or list view of library objects */

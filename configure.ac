@@ -344,6 +344,24 @@ AS_IF([test "x$prefix" = xNONE],
      APPDEFAULTDIR=`eval echo "$APPDEFAULTDIR"`;])dnl
 AC_SUBST([APPDEFAULTDIR])dnl
 
+
+dnl SLIDES BEGIN - This sets up the slide keys in Fig.in
+SLIDES_KEYS_1=""
+SLIDES_KEYS_2=""
+SLIDES_KEYS_3=""
+AC_ARG_ENABLE(slides, AS_HELP_STRING([--enable-slides],
+	[Enalbe experimental support for slides]), 
+  AC_DEFINE([SLIDES_SUPPORT], [1], [Enable xfig slides])
+  SLIDES_KEYS_1="<Key>k: ModeKickObjectSlides()"
+  SLIDES_KEYS_2="<Key>>: SlidesPlay()"
+  SLIDES_KEYS_3="<Key><: SlidesRPlay()"
+)
+AC_SUBST([SLIDES_KEYS_1])
+AC_SUBST([SLIDES_KEYS_2])
+AC_SUBST([SLIDES_KEYS_3])
+dnl SLIDES END
+
+
 AC_ARG_WITH(icondir, [AS_HELP_STRING([--with-icondir=<pathname>],
 	[specify icon directory, to put xfig.png \
 		(default: $datarootdir/pixmaps)])],

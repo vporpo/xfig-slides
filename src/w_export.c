@@ -41,6 +41,9 @@
 #include "w_cmdpanel.h"
 #include "w_color.h"
 #include "w_cursor.h"
+#ifdef SLIDES_SUPPORT
+#include "w_slides.h"
+#endif
 
 /* EXPORTS */
 
@@ -170,6 +173,9 @@ static Widget	fitpage;
 static void	fit_page(void);
 
 static Widget	cancel_but, export_but;
+#ifdef SLIDES_SUPPORT
+static Widget export_slides_but;
+#endif
 static Widget	dfile_lab, dfile_text, nfile_lab;
 static Widget	mag_lab;
 static Widget	size_lab;
@@ -236,6 +242,33 @@ void exp_getxyoff(int *ixoff, int *iyoff)
 
 static char	export_msg[] = "EXPORT";
 static char	exp_msg[] = "The current figure is modified.\nDo you want to save it before exporting?";
+
+#ifdef SLIDES_SUPPORT
+static char	exp_slides_msg[] = "The current figure is modified.\nDo you want to save all slides before exporting?";
+
+static Boolean export_slides_flag = False;
+char* override_figname;
+void
+do_export_slides(Widget w)
+{
+  /* Don't expose this to the user as slide figs disappear after export. */
+  /* /\* if modified (and non-empty) ask to save first *\/ */
+  /* if (!query_save_slides(exp_msg)) */
+  /*   return;		/\* cancel, do not export *\/ */
+
+  /* Save slides before exporting. */
+  do_save_slides((Widget) 0, (XButtonEvent *) 0);
+
+  XtSetSensitive(export_slides_but, False);
+  export_slides_flag = True;
+  do_export(w);
+  export_slides_flag = False;
+  XtSetSensitive(export_slides_but, True);
+  export_panel_dismiss();
+  /* XtPopdown(export_popup); */
+  /* export_popup = False; */
+}
+#endif
 
 void
 do_export(Widget w)
@@ -364,6 +397,9 @@ do_export(Widget w)
 	appres.export_margin = border;
 
 	/* call fig2dev to export the file */
+#ifdef SLIDES_SUPPORT
+	if (! export_slides_flag) {
+#endif
 	if (print_to_file(fval, lang_items[cur_exp_lang],
 			      appres.magnification, xoff, yoff, backgrnd,
 			      (transp == TRANSP_NONE? NULL: transparent),
@@ -375,6 +411,30 @@ do_export(Widget w)
 		    strcpy(default_export_file,fval); /* and copy to default */
 		export_panel_dismiss();
 	}
+#ifdef SLIDES_SUPPORT
+	  }
+	else
+	  {
+	    int i;
+	    int slide;
+	    collect_all_slides_info();
+	    FOR_EACH_USED_SLIDE(slide) {
+		char *slide_expname = strdup(gen_slide_fname(slide, cur_exp_lang));
+		override_figname
+		  = strdup(gen_slide_fname(slide, LANG_FIG));
+		print_to_file(slide_expname, lang_items[cur_exp_lang],
+			      appres.magnification, xoff, yoff, backgrnd,
+			      (transp == TRANSP_NONE? NULL: transparent),
+			      use_transp_backg, print_all_layers, bound_active_layers,
+			      border, appres.smooth_factor, grid, appres.overlap);
+		free(slide_expname);
+		free(override_figname);
+		override_figname = NULL;
+		check_missing_slide_file();
+	      }
+	    export_slides_flag = False;
+	  }
+#endif
 
 	XtSetSensitive(export_but, True);
 }
@@ -904,6 +964,10 @@ get_quality(void)
 }
 
 /* create (if necessary) and popup the export panel */
+
+#ifdef SLIDES_SUPPORT
+Boolean slides_export_flag;
+#endif
 
 void
 popup_export_panel(Widget w)
@@ -1795,6 +1859,26 @@ void create_export_panel(Widget w)
 					   bottom_section, Args, ArgCount);
 	XtAddEventHandler(export_but, ButtonReleaseMask, False,
 			  (XtEventHandler)do_export, (XtPointer) NULL);
+
+#ifdef SLIDES_SUPPORT
+	/* Slides BEGIN */
+	FirstArg(XtNlabel, "Export Slides");
+	NextArg(XtNfromHoriz, export_but);
+	NextArg(XtNhorizDistance, 25);
+	NextArg(XtNfromVert, below);
+	NextArg(XtNvertDistance, 15);
+	NextArg(XtNheight, 25);
+	NextArg(XtNborderWidth, INTERNAL_BW);
+	NextArg(XtNtop, XtChainBottom);
+	NextArg(XtNbottom, XtChainBottom);
+	NextArg(XtNleft, XtChainLeft);
+	NextArg(XtNright, XtChainLeft);
+	export_slides_but = XtCreateManagedWidget("export_slides", commandWidgetClass,
+					   bottom_section, Args, ArgCount);
+	XtAddEventHandler(export_slides_but, ButtonReleaseMask, False,
+			  (XtEventHandler)do_export_slides, (XtPointer) NULL);
+	/* Slides END */
+#endif
 
 	/* install accelerators for cancel, and export in the main panel */
 	XtInstallAccelerators(export_panel, cancel_but);
