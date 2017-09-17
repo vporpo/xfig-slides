@@ -267,9 +267,6 @@ extern slides_t cur_slides; /* w_indpanel.c */
   }                                                     \
 
 
-extern void slides_error_msg(void);
-
-
 /* SIDE PANEL */
 extern void init_slides_side_panel(Widget parent); /* called by main.c */
 extern void setup_slides_side_panel(void); /* called by main.c */

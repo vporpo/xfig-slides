@@ -3335,7 +3335,7 @@ generic_window(char *object_type, char *sub_type, icon_struct *icon, void (*d_pr
     NextArg(XtNright, XtChainLeft);
     /* allow enough height for 1 line + scrollbar */
     NextArg(XtNheight, max_char_height(temp_font) * 1 + 20);
-    below = XtCreateManagedWidget("Slides (csv)", labelWidgetClass,
+    below = XtCreateManagedWidget("Slides (e.g. 1,2,3,6 or 1-3,6)", labelWidgetClass,
 				       form, Args, ArgCount);
 
     /* get the font of above label widget */
@@ -3346,7 +3346,7 @@ generic_window(char *object_type, char *sub_type, icon_struct *icon, void (*d_pr
     FirstArg(XtNfromVert, below);
     NextArg(XtNvertDistance, 2);
     /* FIXME: add my_strdup(slides_to_str (slides)) ??? */
-    NextArg(XtNstring, slides_to_str (slides, ""));
+    NextArg(XtNstring, slides_to_str(slides, ""));
     NextArg(XtNinsertPosition, 0);
     NextArg(XtNeditType, XawtextEdit);
     if (!strcmp(sub_type,"Picture Object")) {

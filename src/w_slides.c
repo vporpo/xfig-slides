@@ -315,8 +315,8 @@ slides_to_str(slides_t slides, const char *prefix)
     snprintf(tmp, MAX_SLIDES_STR, "%d,", slide);
     strcat(slides_edit_str, tmp);
   }
-  /* Finalize with newline */
-  sprintf(tmp, "\n");
+  /* Finalize with end-of-string */
+  sprintf(tmp, '\0');
   strcat(slides_edit_str, tmp);
 
   return strdup(slides_edit_str);
@@ -1163,7 +1163,7 @@ do_save_slides(Widget w, XButtonEvent *ev)
 }
 
 /* Returns 0 on failure */
-int
+static int
 append_slides(slides_t slides, int new_slide_num)
 {
   if (new_slide_num > LAST_SLIDE) {
@@ -1173,19 +1173,91 @@ append_slides(slides_t slides, int new_slide_num)
   return 1;
 }
 
-
+/* Return TRUE if STR is an integer, FALSE otherwise. */
 static Boolean
 is_int(char *str)
 {
-  char *c;
+  const char *c;
   for (c = str; *c != '\0'; c++) {
-    if (! isdigit (*c)) {
-      return 0;
+    if (! isdigit(*c)) {
+      return False;
     }
   }
-  return 1;
+  return True;
 }
 
+/* Acceptable tokens are:
+   i) integers (e.g. '7'). Returns 1.
+   ii) ranges of integers (e.g. '3-7'). Returns the number of slides in range.
+   The range of slides are placed into slides_array[].
+   Returns the number of slides in the token.
+   Returns 0 on failure.
+ */
+static int
+parse_slides_in_token(char *token_str, int slides_array[MAX_SLIDES])
+{
+  /* i) integer */
+  if (is_int(token_str)) {
+    slides_array[0] = atoi(token_str);
+    return 1;
+  }
+  /* ii) range of integers */
+  int slide_range[2];
+  int cnt = 0;
+  char *saveptr;
+  char *token = strtok_r(token_str, "-", &saveptr);
+  while (token) {
+    if (!is_int(token)) {
+      /* Slide not an integer */
+      file_msg("Slide '%s' not an integer. Should be in [%d,%d] !",
+               token, FIRST_SLIDE, LAST_SLIDE);
+      beep();
+      return 0;
+    }
+    int slide = atoi(token);
+    if (cnt > 1) {
+      /* Not in NUM-NUM format! */
+      file_msg("Bad range: '%d-%d-%d'", slide_range[0],
+               slide_range[1], slide_range[2]);
+      beep();
+      return 0;
+    }
+    if (slide < FIRST_SLIDE || slide > LAST_SLIDE) {
+      /* Slide out of bounds */
+      file_msg("Slide '%d' out of bounds. Should be in [%d,%d] !",
+               slide, FIRST_SLIDE, LAST_SLIDE);
+      beep();
+      return 0;
+    }
+    slide_range[cnt++] = slide;
+    token = strtok_r(NULL, "-", &saveptr);
+  }
+
+  int slide_from = slide_range[0];
+  int slide_to = slide_range[1];
+  if (slide_from > slide_to
+      || slide_from < FIRST_SLIDE
+      || slide_to > LAST_SLIDE) {
+    /* Invalid range */
+    file_msg("Range out of bounds: '%d-%d'. Should be in [%d,%d] !",
+             slide_from, slide_to, FIRST_SLIDE, LAST_SLIDE);
+    beep();
+    return 0;
+  }
+
+  /* The range looks valid. Enumerate the slides in the range. */
+  for (int slide = slide_from, i = 0; slide <= slide_to; ++slide, ++i) {
+    if (i > LAST_SLIDE) {
+      /* Too many slides! Increase the size of slides_array[]. */
+      file_msg("Attempting to set slide %d. Too many slides! Should be <= %d.",
+               i, LAST_SLIDE);
+      beep();
+      return 0;
+    }
+    slides_array[i] = slide;
+  }
+  return slide_to - slide_from + 1;
+}
 
 /* Parse the CSV inside BUF and return the corresponding slides.
    BUF is a '\0' terminated string.
@@ -1193,50 +1265,30 @@ is_int(char *str)
 slides_t
 parse_slides_str(char *buf)
 {
-  /* Count entries in BUF */
-  char *token;
   slides_t slides = get_new_slides();
-  token = strtok(buf, ",");
+  char *saveptr;
+  char *token = strtok_r(buf, ",", &saveptr);
   while (token) {
     /* Found end of slides, return */
     if (token[0] == '\n') {
       return slides;
     }
-
-    int slide_num = atoi(token);
-    /* If not an integer OR negative OR greater than the MAX,
-       then produce an error msg. */
-    if (! is_int(token)
-        || slide_num < FIRST_SLIDE
-        || slide_num > LAST_SLIDE) {
-      /* Mark as fail but keep going. Skip the negative numbers. */
-      char error_msg[80];
-      snprintf(error_msg, 80, "ERROR: Slide number '%s' is invalid!",
-               token, MAX_SLIDES);
-      file_msg(error_msg);
-      slides_error_msg();
-      beep();
-      return NULL;
-    } else {
-      int ret = append_slides(slides, slide_num);
-      assert(ret);
+    int slides_in_token_array[MAX_SLIDES];
+    int num_slides_in_token = parse_slides_in_token(token, slides_in_token_array);
+    /* Error if parsing the token failed.
+       We don't fail. Instead we skip it and just keep parsing. */
+    if (num_slides_in_token > 0) {
+      /* The token contains 1 or more slides in slides_in_token_array[]. */
+      for (int i = 0; i != num_slides_in_token; ++i) {
+        int slide = slides_in_token_array[i];
+        assert(slide >= FIRST_SLIDE && slide <= LAST_SLIDE);
+        int ret = append_slides(slides, slide);
+        assert(ret);
+      }
     }
-    token = strtok(NULL, ",");
+    token = strtok_r(NULL, ",", &saveptr);
   }
   return slides;
-}
-
-
-void
-slides_error_msg(void)
-{
-  char slides_error_msg[160];
-  snprintf(slides_error_msg, 160,
-           "ERROR: Please use integers >= %d and <= %d separated by ','",
-           FIRST_SLIDE, LAST_SLIDE);
-  file_msg(slides_error_msg);
-  put_msg(slides_error_msg);
-  beep();
 }
 
 
