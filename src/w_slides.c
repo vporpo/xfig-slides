@@ -218,6 +218,17 @@ slide_reset(slides_t slides)
   slides->fail = 0;
 }
 
+/* Return the last slide set in SLIDES.
+   Returns NULL_SLIDE if no slide is set. */
+int
+get_last_slide(slides_t slides) {
+  int si, last_slide = NULL_SLIDE;
+  FOR_EACH_SLIDE_IN_SLIDES(si, slides) {
+    last_slide = si;
+  }
+  return last_slide;
+}
+
 /* Swap SLIDE1 and SLIDE2 */
 void
 slide_swap(slides_t slides, int slide1, int slide2)
@@ -299,6 +310,24 @@ get_slides_line(char *buf)
   return NULL;
 }
 
+/* Print-append range FROM_SLIDE-TO_SLIDE to SLIDES_EDIT_STR. */
+static void
+append_range_to_str(char *slides_edit_str, int from_slide, int to_slide)
+{
+  char tmp[MAX_SLIDES_STR];
+  /* We don't need a range since FROM-TO too close */
+  if (to_slide <= from_slide + 1) {
+    snprintf(tmp, MAX_SLIDES_STR, "%d,", to_slide);
+  }
+  /* We generate the FROM-TO range */
+  else {
+    snprintf(tmp, MAX_SLIDES_STR, "%d-%d,", from_slide, to_slide);
+  }
+  strcat(slides_edit_str, tmp);
+}
+
+/* Returns a string representation of SLIDES.
+   It is used in the edit dialogue box. */
 char *
 slides_to_str(slides_t slides, const char *prefix)
 {
@@ -311,13 +340,32 @@ slides_to_str(slides_t slides, const char *prefix)
   /* Initliaze with SLIDES_BEGIN_CHAR */
   sprintf(slides_edit_str, "%s", prefix);
   /* Append the slides, e.g.:  1,2,3,4,5 */
+  int from_slide = NULL_SLIDE, to_slide = NULL_SLIDE, last_slide = NULL_SLIDE;
+  int last_slide_in_slides = get_last_slide(slides);
   FOR_EACH_SLIDE_IN_SLIDES(slide, slides) {
-    snprintf(tmp, MAX_SLIDES_STR, "%d,", slide);
-    strcat(slides_edit_str, tmp);
+    /* 1. Collect range */
+    if (slide == last_slide + 1
+        || last_slide == NULL_SLIDE) {
+      /* Collect range as long as slide == last_slide + 1 */
+      to_slide = slide;
+      if (from_slide == NULL_SLIDE) {
+        from_slide = slide;
+      }
+    }
+
+    /* 2. We reached the end of the range.
+          Current slide is not in range. Print range collected so far. */
+    if (slide != last_slide + 1 && last_slide != NULL_SLIDE) {
+      append_range_to_str(slides_edit_str, from_slide, to_slide);
+      from_slide = slide;
+      to_slide = slide;
+    }
+    last_slide = slide;
   }
+  /* We need to print the last range we collected. */
+  append_range_to_str(slides_edit_str, from_slide, to_slide);
   /* Finalize with end-of-string */
-  sprintf(tmp, '\0');
-  strcat(slides_edit_str, tmp);
+  strcat(slides_edit_str, "\0");
 
   return strdup(slides_edit_str);
 }

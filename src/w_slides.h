@@ -286,6 +286,7 @@ extern void stub_slides_play(void);
 extern void stub_slides_rplay(void);
 extern Boolean slide_set(slides_t slides, int i, Boolean value);
 extern void slide_reset(slides_t slides);
+extern int get_last_slide(slides_t slides);
 extern int get_last_used_slide(void);
 extern int get_first_used_slide(void);
 extern Boolean is_slide_set(slides_t slides, int i);
