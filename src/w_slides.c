@@ -316,11 +316,12 @@ append_range_to_str(char *slides_edit_str, int from_slide, int to_slide)
 {
   char tmp[MAX_SLIDES_STR];
   /* We don't need a range since FROM-TO too close */
-  if (to_slide <= from_slide + 1) {
+  if (to_slide == from_slide) {
     snprintf(tmp, MAX_SLIDES_STR, "%d,", to_slide);
-  }
+  } else if (to_slide == from_slide + 1) {
+    snprintf(tmp, MAX_SLIDES_STR, "%d,%d,", from_slide, to_slide);
   /* We generate the FROM-TO range */
-  else {
+  } else {
     snprintf(tmp, MAX_SLIDES_STR, "%d-%d,", from_slide, to_slide);
   }
   strcat(slides_edit_str, tmp);
