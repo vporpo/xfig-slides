@@ -1429,7 +1429,9 @@ static slides_t new_set_slides;
 static void
 set_slides(void * obj, int type)
 {
-    SET_OBJ_ATTR_TO(obj, type, slides, new_set_slides);
+  slides_t obj_slides;
+  SET_TO_OBJ_ATTR(obj_slides, obj, type, slides);
+  copy_slides_from_to(new_set_slides, obj_slides);
 }
 #endif
 
