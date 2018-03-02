@@ -87,6 +87,8 @@
 #define   F_DEL_SLIDE 64
 #define   F_NEW_SLIDE 65
 #define   F_SWAP_SLIDE 66
+#define   F_KUT_SLIDES 67
+#define   F_KUT_MERGE 68
 #endif
 
 extern int	cur_mode;

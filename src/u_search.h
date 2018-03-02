@@ -39,5 +39,8 @@ F_compound     *compound_search(int x, int y, int tolerance, int *px, int *py);
 F_compound     *compound_point_search(int x, int y, int tol, int *cx, int *cy, int *fx, int *fy);
 F_spline       *get_spline_point(int x, int y, F_point **p, F_point **q);
 
+#ifdef SLIDES_SUPPORT
+extern void *find_object(int type, int x, int y);
+#endif
 
 #endif /* U_SEARCH_H */

@@ -121,6 +121,7 @@ static void	stub_areameas_selected(void);
 static void	stub_tangent_selected(void);
 #ifdef SLIDES_SUPPORT
 static void	stub_kick_object_slides_selected(void);
+static void	stub_kut_object_slides_selected(void);
 #endif
 
 /**************	    local variables and routines   **************/
@@ -279,7 +280,10 @@ mode_sw_info mode_switches[] = {
     #ifdef SLIDES_SUPPORT
     {&kick_slides_ic, F_KICK_SLIDES, kick_slides_selected, M_ALL,
        0,
-       "Kick objects to other slides (k)", False},
+       "KICK objects to other slides   (k)", False},
+    {&kut_slides_ic, F_KUT_SLIDES, kut_slides_selected, M_ALL,
+       0,
+       "KUT (split or merge) an object across slides   (shift-k)", False},
     #endif
 
     /* This must be last for create_mode_panel() (in w_canvas.c) */
@@ -363,6 +367,7 @@ static XtActionsRec mode_actions[] =
     {"ModeKickObjectSlides", (XtActionProc) stub_kick_object_slides_selected},
     {"SlidesPlay", (XtActionProc) stub_slides_play},
     {"SlidesRPlay", (XtActionProc) stub_slides_rplay},
+    {"ModeKutObjectSlides", (XtActionProc) stub_kut_object_slides_selected},
 #endif
 };
 
@@ -987,6 +992,11 @@ static void
 stub_kick_object_slides_selected(void)
 {
 	change_mode(&kick_slides_ic);
+}
+static void
+stub_kut_object_slides_selected(void)
+{
+	change_mode(&kut_slides_ic);
 }
 #endif
 

@@ -104,6 +104,7 @@ void undo_convert (void);
 void undo_open_close (void);
 void undo_join_split (void);
 #ifdef SLIDES_SUPPORT
+void undo_kut_slides(void);
 void undo_kick_slides(void);
 void undo_new_slide(void);
 void undo_del_slide(void);
@@ -166,17 +167,23 @@ undo(void)
 	undo_join_split();
 	break;
 #ifdef SLIDES_SUPPORT
+      case F_KUT_SLIDES:
+	undo_kut_slides();
+	break;
+      case F_KUT_MERGE:
+	undo_kut_merge();
+	break;
       case F_KICK_SLIDES:
 	undo_kick_slides();
 	break;
       case F_DEL_SLIDE:
-  undo_del_slide();
+	undo_del_slide();
   break;
       case F_NEW_SLIDE:
-  undo_new_slide();
+	undo_new_slide();
   break;
       case F_SWAP_SLIDE:
-  undo_swap_slide();
+	undo_swap_slide();
   break;
 #endif
     default:

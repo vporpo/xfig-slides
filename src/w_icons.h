@@ -128,6 +128,7 @@ extern icon_struct	anglemeas_ic;
 extern icon_struct	lenmeas_ic;
 extern icon_struct	areameas_ic;
 extern icon_struct	kick_slides_ic;
+extern icon_struct	kut_slides_ic;
 
 /* misc icons */
 

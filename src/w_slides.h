@@ -1,6 +1,6 @@
 /*
  * FIG : Facility for Interactive Generation of figures
- * Copyright (c) 2013-2017 by Vasileios Porpodas (Slides support)
+ * Copyright (c) 2013-2018 by Vasileios Porpodas (Slides support)
  *
  * Any party obtaining a copy of these files is granted, free of charge, a
  * full and unrestricted irrevocable, world-wide, paid up, royalty-free,
@@ -108,7 +108,7 @@ struct all_slides_ all_slides;
 extern int get_bitmap_idx(int slide_i);
 extern Boolean is_slide_active(int slide_i); /* accum */
 extern void slide_active_clear(int slide_i); /* accum */
-
+extern Boolean has_next_slide(int slide_i);
 
 /* which layer buttons are active */
 
@@ -282,6 +282,7 @@ extern char *export_slide_file_not_found;
 extern slides_t get_new_object_slides(void);
 
 extern void kick_slides_selected(void);
+extern void kut_slides_selected(void);
 extern void stub_slides_play(void);
 extern void stub_slides_rplay(void);
 extern Boolean slide_set(slides_t slides, int i, Boolean value);
@@ -307,6 +308,8 @@ extern int num_of_used_slides(void);
 extern void undo_swap_slide(void);
 extern void undo_new_slide(void);
 extern void undo_del_slide(void);
+extern void undo_kut_slides(void);
+extern void undo_kut_merge(void);
 extern void undo_kick_slides(void);
 
 #endif  /* SLIDES_SUPPORT */

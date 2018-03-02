@@ -1,6 +1,6 @@
 /*
  * FIG : Facility for Interactive Generation of figures
- * Copyright (c) 2013-2017 by Vasileios Porpodas (Slides support)
+ * Copyright (c) 2013-2018 by Vasileios Porpodas (Slides support)
  *
  * Any party obtaining a copy of these files is granted, free of charge, a
  * full and unrestricted irrevocable, world-wide, paid up, royalty-free,
@@ -47,10 +47,22 @@
 #include "w_cursor.h"
 #include "w_color.h"
 #include "f_save.h"
+#include "u_create.h"
+#include "u_list.h"
 
 DeclareStaticArgs(20);
 
 extern int last_action;         /* u_undo.c */
+
+/* For undoing kut */
+void *kut_object;
+int kut_object_type;
+int kut_object_x;
+int kut_object_y;
+int kut_curr_slide;
+void *kut_merge_obj1;
+void *kut_merge_obj2;
+int kut_merge_next_or_prev;
 
 /* Deep copy of slides */
 void copy_slides_from_to(slides_t from, slides_t to) {
@@ -497,6 +509,13 @@ active_slides_chk_get_first(void)
   FOR_EACH_SELECTED_SLIDE(si)
     return si;
   return NULL_SLIDE;
+}
+
+Boolean is_last_slide(int slide) {
+  return slide >= all_slides.active_max;
+}
+Boolean is_first_slide(int slide) {
+  return slide <= all_slides.active_min;
 }
 
 /* Activate/Deactivate a specific slide */
@@ -2709,6 +2728,248 @@ init_kick_current_slide(F_line *p, int type, int x, int y, int px, int py)
   redisplay_canvas();
 }
 
+void *
+clone_object(F_line *p, int type)
+{
+  void *new_obj = NULL;
+  switch (type) {
+  case O_COMPOUND:
+    cur_c = (F_compound *) p;
+    new_obj = copy_compound(cur_c);
+    break;
+  case O_POLYLINE:
+    cur_l = (F_line *) p;
+    new_obj = copy_line(cur_l);
+    break;
+  case O_TXT:
+    cur_t = (F_text *) p;
+    new_obj = copy_text(cur_t);
+    break;
+  case O_ELLIPSE:
+    cur_e = (F_ellipse *) p;
+    new_obj = copy_ellipse(cur_e);
+    break;
+  case O_ARC:
+    cur_a = (F_arc *) p;
+    new_obj = copy_arc(cur_a);
+    break;
+  case O_SPLINE:
+    cur_s = (F_spline *) p;
+    new_obj = copy_spline(cur_s);
+    break;
+  default:
+    return new_obj;
+  }
+  return new_obj;
+}
+
+/* Add OBJ to the screen. */
+static void
+add_object(void *obj, int type) {
+  switch (type) {
+  case O_POLYLINE:
+    add_line((F_line *) obj);
+    break;
+  case O_TXT:
+    add_text((F_text *) obj);
+    break;
+  case O_ELLIPSE:
+    add_ellipse((F_ellipse *) obj);
+    break;
+  case O_ARC:
+    add_arc((F_arc *) obj);
+    break;
+  case O_SPLINE:
+    add_spline((F_spline *) obj);
+    break;
+  case O_COMPOUND:
+  case O_FIGURE:
+    add_compound((F_compound *) obj);
+    break;
+  default:
+    assert(0 && "Bad type");
+  }
+}
+
+/* Delete object */
+static void
+delete_obj(void *obj, int type) {
+  switch (type) {
+  case O_POLYLINE:
+    delete_line((F_line *) obj);
+    break;
+  case O_TXT:
+    delete_text((F_text *) obj);
+    break;
+  case O_ELLIPSE:
+    delete_ellipse((F_ellipse *) obj);
+    break;
+  case O_ARC:
+    delete_arc((F_arc *) obj);
+    break;
+  case O_SPLINE:
+    delete_spline((F_spline *) obj);
+    break;
+  case O_COMPOUND:
+  case O_FIGURE:
+    delete_compound((F_compound *) obj);
+    break;
+  default:
+    assert(0 && "Bad type");
+  }
+}
+
+static void
+kut_current_object_impl(F_line *p, int current_slide, int type, int x, int y) {
+  slides_t sl;
+  if (current_slide == NULL_SLIDE) {
+    return;
+  }
+  if (is_first_slide(current_slide)) {
+    put_msg("Cannot KUT first slide !");
+    return;
+  }
+
+  /* 1. Clone object along with its slides
+     2. Disable this object's slides after the current one
+     3. Disable the clone's slides up to the current one
+  */
+  void *clone = clone_object(p, type);
+  int i;
+  FOR_EACH_SLIDE_I(i) {
+    if (i < current_slide) {
+      object_set_slide(clone, type, i, False, True /*Recursive*/);
+    }
+  }
+  add_object(clone, type);
+
+  FOR_EACH_SLIDE_I(i) {
+    if (i >= current_slide) {
+      object_set_slide(p, type, i, False, True /*Recursive*/);
+    }
+  }
+
+  update_slides();
+  redisplay_canvas();
+
+  /* For undo */
+  kut_object = p;
+  kut_object_type = type;
+  kut_object_x = x;
+  kut_object_y = y;
+  kut_curr_slide = current_slide;
+  set_action(F_KUT_SLIDES);
+}
+
+/* Callback */
+static void
+kut_current_object(F_line *p, int type, int x, int y,
+                   int px, int py) {
+  int current_slide = get_single_current_slide();
+  kut_current_object_impl(p, current_slide, type, x, y);
+}
+
+static Boolean is_active_on_slide(void *obj, int type, int slide) {
+  slides_t obj_slides;
+  SET_TO_OBJ_ATTR(obj_slides, obj, type, slides);
+  return is_slide_set(obj_slides, slide);
+}
+
+#define TOLERANCE ((int)((display_zoomscale < 20.0? 10: 14) * \
+			PIX_PER_INCH/DISPLAY_PIX_PER_INCH/display_zoomscale))
+
+static void *find_object_on_slide(int type, int x, int y, int slide) {
+  /* 1. Save current state of checked slides */
+  char saved_state[MAX_SLIDES];
+  save_active_slides_chk(saved_state);
+  /* 2. Set SLIDE as the only active */
+  active_slides_chk_setonly(slide, True);
+  /* 3. Lookup the object */
+  void *obj_found = find_object(type, x, y);
+  /* 4. Restore checked slides state */
+  restore_active_slides_chk(saved_state);
+  return obj_found;
+}
+
+static void
+kut_merge_with_next_object_impl(F_line *curr_obj, int type,
+                                int x, int y,
+                                int curr_slide,
+                                Boolean next_or_prev /* next=1 prev=-1 */) {
+  assert(next_or_prev == 1 || next_or_prev == -1);
+  /* 1. Find the next/prev object
+     2. Copy the slides of next/prev onto the current
+     3. Delete the next/prev object
+  */
+  if (next_or_prev == 1) {
+    if (is_last_slide(curr_slide)) {
+      put_msg("No next slide to merge!");
+      return;
+    }
+  } else if (next_or_prev == -1) {
+    if (is_first_slide(curr_slide)) {
+      put_msg("No previous slide to merge!");
+      return;
+    }
+  }
+  int other_slide = curr_slide + next_or_prev;
+  void *other_obj = find_object_on_slide(type, x, y, other_slide);
+  if (! other_obj) {
+    put_msg("No object found to merge!");
+    return;
+  }
+  if (other_obj == curr_obj) {
+    put_msg("Could not merge: Found same object in other slide!");
+    return;
+  }
+
+  /* For Undo */
+  if (kut_merge_obj1 && kut_merge_obj1 != curr_obj)
+    free(kut_merge_obj1);
+  if (kut_merge_obj2 && kut_merge_obj2 != other_obj)
+    free(kut_merge_obj2);
+  kut_merge_obj1 = clone_object(curr_obj, type);
+  kut_merge_obj2 = clone_object(other_obj, type);
+  kut_merge_next_or_prev = next_or_prev;
+
+  int i;
+  slides_t other_obj_slides;
+  SET_TO_OBJ_ATTR(other_obj_slides, other_obj, type, slides);
+  slides_t curr_obj_slides;
+  SET_TO_OBJ_ATTR(curr_obj_slides, curr_obj, type, slides);
+  FOR_EACH_SLIDE_IN_SLIDES(i, other_obj_slides) {
+    slide_set(curr_obj_slides, i, True);
+  }
+
+  delete_obj(other_obj, type);
+  put_msg("Merged succesfully!");
+
+  /* For undo */
+  kut_object = curr_obj;
+  kut_object_type = type;
+  kut_object_x = x;
+  kut_object_y = y;
+  kut_curr_slide = curr_slide;  /* the slide to be splitted */
+  set_action(F_KUT_MERGE);
+
+  redisplay_canvas();
+}
+
+/* Callback */
+static void
+kut_merge_with_next_object(F_line *p, int type, int x, int y, int px, int py)
+{
+  int curr_slide = get_current_slide();
+  kut_merge_with_next_object_impl(p, type, x, y, curr_slide, 1/*next*/);
+}
+
+/* Callback */
+static void
+kut_merge_with_prev_object(F_line *p, int type, int x, int y, int px, int py)
+{
+  int curr_slide = get_current_slide();
+  kut_merge_with_next_object_impl(p, type, x, y, curr_slide, -1/*prev*/);
+}
 
 void
 kick_slides_selected(void)
@@ -2729,6 +2990,26 @@ kick_slides_selected(void)
   set_cursor(pick9_cursor);
   /* set_cursor(buster_cursor); */
   /*    force_nopositioning(); */
+  reset_action_on();
+}
+
+void
+kut_slides_selected(void)
+{
+  set_mousefun("merge with prev", "kut current", "merge with next", LOC_OBJ, "", LOC_OBJ);
+  canvas_kbd_proc = null_proc;
+  canvas_locmove_proc = null_proc;
+  canvas_ref_proc = null_proc;
+
+  init_searchproc_left(kut_merge_with_prev_object);
+  init_searchproc_middle(kut_current_object);
+  init_searchproc_right(kut_merge_with_next_object);
+
+  canvas_leftbut_proc = object_search_left;
+  canvas_middlebut_proc = object_search_middle;
+  canvas_rightbut_proc = object_search_right;
+
+  set_cursor(pick9_cursor);
   reset_action_on();
 }
 
@@ -2773,6 +3054,40 @@ get_slides_parsed_safe(slides_t slides_parsed)
 
 
 /* UNDO */
+
+void
+undo_kut_slides(void) {
+  /* To undo the kut, we need to merge the kut object with its next. */
+  kut_merge_with_next_object_impl(kut_object, kut_object_type,
+                                  kut_object_x, kut_object_y,
+                                  kut_curr_slide, -1);
+
+  put_msg("Undo kut slides completed!");
+}
+
+void
+undo_kut_merge(void) {
+  /* 1. Delete current object */
+  delete_obj(kut_object, kut_object_type);
+
+  /* 2. Retore previous ones */
+  add_object(kut_merge_obj1, kut_object_type);
+  add_object(kut_merge_obj2, kut_object_type);
+  redisplay_canvas();
+
+  /* For undoing the undo */
+  if (kut_merge_next_or_prev == -1) {
+    kut_object = kut_merge_obj1;
+    kut_curr_slide = kut_curr_slide + 0;
+  }
+  else {
+    kut_object = kut_merge_obj2;
+    kut_curr_slide = kut_curr_slide + 1;
+  }
+
+  set_action(F_KUT_SLIDES);
+  put_msg("Undo kut merge completed!");
+}
 
 void
 undo_kick_slides(void)

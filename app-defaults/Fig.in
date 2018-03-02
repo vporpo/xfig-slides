@@ -496,10 +496,10 @@ Fig*mode_panel*accelerators: \
 	<Key>u: ModeUpdateObject() \n\
 	<Key>v: ModeConvertObject() \n\
 	<Key>x: ModeChopObject() \n\
-  @SLIDES_KEYS_1@ \n\
+	@SLIDES_KEYS_0@ \n\
+	@SLIDES_KEYS_1@ \n\
 	@SLIDES_KEYS_2@ \n\
-  @SLIDES_KEYS_3@
-	
+	@SLIDES_KEYS_3@ \n\
 
 
 ! to make the color selection menu in the popup editor work

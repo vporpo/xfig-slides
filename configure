@@ -623,6 +623,7 @@ icondir
 SLIDES_KEYS_3
 SLIDES_KEYS_2
 SLIDES_KEYS_1
+SLIDES_KEYS_0
 APPDEFAULTDIR
 appdefaultdir
 XAW3D1_5E_FALSE
@@ -6900,11 +6901,13 @@ if test "${enable_slides+set}" = set; then :
   enableval=$enable_slides;
 $as_echo "#define SLIDES_SUPPORT 1" >>confdefs.h
 
+  SLIDES_KEYS_0="Shift<Key>k: ModeKutObjectSlides()"
   SLIDES_KEYS_1="<Key>k: ModeKickObjectSlides()"
   SLIDES_KEYS_2="<Key>>: SlidesPlay()"
   SLIDES_KEYS_3="<Key><: SlidesRPlay()"
 
 fi
+
 
 
 

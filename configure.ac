@@ -352,10 +352,12 @@ SLIDES_KEYS_3=""
 AC_ARG_ENABLE(slides, AS_HELP_STRING([--enable-slides],
 	[Enalbe experimental support for slides]), 
   AC_DEFINE([SLIDES_SUPPORT], [1], [Enable xfig slides])
+  SLIDES_KEYS_0="Shift<Key>k: ModeKutObjectSlides()"
   SLIDES_KEYS_1="<Key>k: ModeKickObjectSlides()"
   SLIDES_KEYS_2="<Key>>: SlidesPlay()"
   SLIDES_KEYS_3="<Key><: SlidesRPlay()"
 )
+AC_SUBST([SLIDES_KEYS_0])
 AC_SUBST([SLIDES_KEYS_1])
 AC_SUBST([SLIDES_KEYS_2])
 AC_SUBST([SLIDES_KEYS_3])

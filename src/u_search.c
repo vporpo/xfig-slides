@@ -1063,3 +1063,37 @@ get_spline_point(int x, int y, F_point **p, F_point **q)
     return (NULL);
 }
 
+#ifdef SLIDES_SUPPORT
+/* Search for the object of TYPE at (x,y). */
+void *
+find_object(int type, int x, int y) {
+  int px, py;
+  Boolean found = False;
+  unsigned int shift = 0;
+  init_search();
+  for (n = 0; n < objectcount;) {
+    switch (type) {
+    case O_ELLIPSE:
+      found = next_ellipse_found(x, y, TOLERANCE, &px, &py, shift);
+      return e;
+    case O_POLYLINE:
+      found = next_line_found(x, y, TOLERANCE, &px, &py, shift);
+      return l;
+    case O_SPLINE:
+      found = next_spline_found(x, y, TOLERANCE, &px, &py, shift);
+      return s;
+    case O_TXT:
+      found = next_text_found(x, y, TOLERANCE, &px, &py, shift);
+      return t;
+    case O_ARC:
+      found = next_arc_found(x, y, TOLERANCE, &px, &py, shift);
+      return a;
+    case O_COMPOUND:
+      found = next_compound_found(x, y, TOLERANCE, &px, &py, shift);
+      return c;
+    }
+    return NULL;
+  }
+}
+
+#endif
