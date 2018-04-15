@@ -77,6 +77,8 @@ struct slides_
   int cnt;
   /* FAIL is TRUE if there is something wrong */
   Boolean fail;
+  /* True if this slide should be enabled whenever we add a new slide. */
+  Boolean is_unbounded;
 };
 typedef struct slides_ *slides_t;
 
@@ -287,13 +289,17 @@ extern void stub_slides_play(void);
 extern void stub_slides_rplay(void);
 extern Boolean slide_set(slides_t slides, int i, Boolean value);
 extern void slide_reset(slides_t slides);
+/* The last used slide in SLIDES */
 extern int get_last_slide(slides_t slides);
+/* The first used slide in SLIDES */
+extern int get_first_slide(slides_t slides);
 extern int get_last_used_slide(void);
 extern int get_first_used_slide(void);
 extern Boolean is_slide_set(slides_t slides, int i);
 extern int slides_get_cnt(slides_t slides);
 extern char *selected_slides_str(void);
 extern void for_all_objects_in_compound_do(F_compound *c, void (*func)(void *obj, int type, int cnt, void *extra), void *extra, Boolean recursive);
+int for_all_objects_do(void (*func) (void *obj, int type, int cnt, void *extra), void *extra, Boolean recursive);
 extern Boolean active_slides(slides_t slides);
 extern Boolean active_object_slides(void *obj, int type);
 extern Boolean slides_differ(slides_t slides1, slides_t slides2);

@@ -143,7 +143,7 @@ for_all_objects_in_compound_do(F_compound *c,
 /* Call FUNC(OBJ, TYPE) for each object.
    TYPEs defined in object.h (O_ELLIPSE etc.).
    If RECURSIVE, then iterate over objects in compounds. */
-static int
+int
 for_all_objects_do(void (*func) (void *obj, int type, int cnt, void *extra),
                    void *extra, Boolean recursive)
 {
@@ -228,6 +228,7 @@ slide_reset(slides_t slides)
 
   slides->cnt = 0;
   slides->fail = 0;
+  slides->is_unbounded = False;
 }
 
 /* Return the last slide set in SLIDES.
@@ -239,6 +240,16 @@ get_last_slide(slides_t slides) {
     last_slide = si;
   }
   return last_slide;
+}
+
+/* Returns the first slide set in SLIDES. */
+int
+get_first_slide(slides_t slides) {
+  int si, first_slide = NULL_SLIDE;
+  FOR_EACH_SLIDE_IN_SLIDES(si, slides) {
+    return si;
+  }
+  return first_slide;
 }
 
 /* Swap SLIDE1 and SLIDE2 */
@@ -286,6 +297,7 @@ get_new_slides(void)
   slides_t slides = (slides_t) calloc(1, sizeof(slides[0]));
   slides->fail = False;
   slides->cnt = 0;
+  slides->is_unbounded = False;
   return slides;
 }
 
@@ -1256,20 +1268,43 @@ is_int(char *str)
 
 /* Acceptable tokens are:
    i) integers (e.g. '7'). Returns 1.
-   ii) ranges of integers (e.g. '3-7'). Returns the number of slides in range.
+   ii) unbounded range (e.g. '3-'). This needs special treatment because the
+        range should automatically extend whenever we add a new slide.
+   iii) ranges of integers (e.g. '3-7'). Returns the number of slides in range.
    The range of slides are placed into slides_array[].
    Returns the number of slides in the token.
    Returns 0 on failure.
  */
 static int
-parse_slides_in_token(char *token_str, int slides_array[MAX_SLIDES])
+parse_slides_in_token(char *token_str,
+                      int slides_array[MAX_SLIDES], Boolean *is_unbounded)
 {
+  *is_unbounded = False;
   /* i) integer */
   if (is_int(token_str)) {
     slides_array[0] = atoi(token_str);
     return 1;
   }
-  /* ii) range of integers */
+  /* ii) unbounded range (e.g., '3-' */
+  int str_length = strlen(token_str);
+  if (token_str[str_length - 1] == '-') {
+    assert(str_length < 8);
+    char start_slide_str[8];
+    strncpy(start_slide_str, token_str, str_length);
+    start_slide_str[str_length - 1] = '\0';
+    int start_slide = atoi(start_slide_str);
+    int last_used_slide = get_last_used_slide();
+    last_used_slide = (last_used_slide < start_slide)
+      ? start_slide : last_used_slide;
+    int cnt = 0;
+    for (int slide = start_slide; slide <= last_used_slide;
+         ++slide, ++cnt) {
+      slides_array[cnt] = slide;
+    }
+    *is_unbounded = True;
+    return cnt;
+  }
+  /* iii) range of integers */
   int slide_range[2];
   int cnt = 0;
   char *saveptr;
@@ -1342,7 +1377,9 @@ parse_slides_str(char *buf)
       return slides;
     }
     int slides_in_token_array[MAX_SLIDES];
-    int num_slides_in_token = parse_slides_in_token(token, slides_in_token_array);
+    Boolean is_unbounded = False;
+    int num_slides_in_token
+      = parse_slides_in_token(token, slides_in_token_array, &is_unbounded);
     /* Error if parsing the token failed.
        We don't fail. Instead we skip it and just keep parsing. */
     if (num_slides_in_token > 0) {
@@ -1353,6 +1390,11 @@ parse_slides_str(char *buf)
         int ret = append_slides(slides, slide);
         assert(ret);
       }
+    }
+
+    /* Unbounded slides (e.g. '3-' need special treatment. */
+    if (is_unbounded) {
+      slides->is_unbounded = True;
     }
     token = strtok_r(NULL, ",", &saveptr);
   }

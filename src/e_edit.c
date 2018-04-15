@@ -1427,12 +1427,34 @@ rescale_compound(void)
 /* Helper for setting parents for each object in compound */
 static slides_t new_set_slides;
 static void
-set_slides(void * obj, int type)
+set_slides(void *obj, int type, int cnt, void *extra)
 {
+  (void) cnt;
+  (void) extra;
   slides_t obj_slides;
   SET_TO_OBJ_ATTR(obj_slides, obj, type, slides);
   copy_slides_from_to(new_set_slides, obj_slides);
 }
+
+/* If we added a new slide (usually via the edit dialogue) make sure that
+   any unbounded objects are enabled for any new slides. */
+void fix_unbounded(void *obj, int type, int cnt, void *extra) {
+  (void) cnt;
+  (void) extra;
+  slides_t obj_slides;
+  SET_TO_OBJ_ATTR(obj_slides, obj, type, slides);
+  if (obj_slides->is_unbounded) {
+    /* An anbounded object should have its all its slides set
+       from the first enabled until the maximum. */
+    int last_used_slide = get_last_used_slide();
+    int obj_min_used_slide = get_first_slide(obj_slides);
+    assert(obj_min_used_slide != NULL_SLIDE && "no slide set?");
+    for (int i = obj_min_used_slide; i <= last_used_slide; ++i) {
+      slide_set(obj_slides, i, True);
+    }
+  }
+}
+
 #endif
 
 
@@ -2032,6 +2054,7 @@ get_new_line_values(void)
 	#ifdef SLIDES_SUPPORT
 	/* get any slides */
 	new_l->slides = parse_slides_str(panel_get_value(slides_panel));
+  for_all_objects_do(fix_unbounded, NULL, True);
 	#endif
 	p1.x = panel_get_dim_value(x1_panel);
 	p1.y = panel_get_dim_value(y1_panel);
@@ -2473,6 +2496,7 @@ get_new_text_values(void)
     #ifdef SLIDES_SUPPORT
     /* get any slides */
     new_t->slides = parse_slides_str(panel_get_value(slides_panel));
+    for_all_objects_do(fix_unbounded, NULL, True);
     #endif
     /* get the fontstruct for zoom = 1 to get the size of the string */
     canvas_font = lookfont(x_fontnum(psfont_text(new_t), new_t->font), new_t->size);
@@ -2991,6 +3015,7 @@ new_generic_values(void)
     #ifdef SLIDES_SUPPORT
     /* get the slides */
     generic_vals.slides = parse_slides_str(panel_get_value(slides_panel));
+    for_all_objects_do(fix_unbounded, NULL, True);
     #endif
     /* include dash length in panel, too */
     generic_vals.style_val = (float) atof(panel_get_value(style_val_panel));
@@ -3337,7 +3362,7 @@ generic_window(char *object_type, char *sub_type, icon_struct *icon, void (*d_pr
     NextArg(XtNright, XtChainLeft);
     /* allow enough height for 1 line + scrollbar */
     NextArg(XtNheight, max_char_height(temp_font) * 1 + 20);
-    below = XtCreateManagedWidget("Slides (e.g. 1,2,3,6 or 1-3,6)", labelWidgetClass,
+    below = XtCreateManagedWidget("Slides (e.g. 1,2,3,6 or 1-3,6 or 1-3,6-)", labelWidgetClass,
 				       form, Args, ArgCount);
 
     /* get the font of above label widget */
