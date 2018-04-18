@@ -1444,10 +1444,10 @@ void fix_unbounded(void *obj, int type, int cnt, void *extra) {
   slides_t obj_slides;
   SET_TO_OBJ_ATTR(obj_slides, obj, type, slides);
   if (obj_slides->is_unbounded) {
-    /* An anbounded object should have its all its slides set
-       from the first enabled until the maximum. */
+    /* An anbounded object should have all of its slides set
+       from the beginning of the last range until the maximum. */
     int last_used_slide = get_last_used_slide();
-    int obj_min_used_slide = get_first_slide(obj_slides);
+    int obj_min_used_slide = get_beginning_of_last_range(obj_slides);
     assert(obj_min_used_slide != NULL_SLIDE && "no slide set?");
     for (int i = obj_min_used_slide; i <= last_used_slide; ++i) {
       slide_set(obj_slides, i, True);

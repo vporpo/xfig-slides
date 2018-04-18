@@ -293,6 +293,7 @@ extern void slide_reset(slides_t slides);
 extern int get_last_slide(slides_t slides);
 /* The first used slide in SLIDES */
 extern int get_first_slide(slides_t slides);
+extern int get_beginning_of_last_range(slides_t slides);
 extern int get_last_used_slide(void);
 extern int get_first_used_slide(void);
 extern Boolean is_slide_set(slides_t slides, int i);

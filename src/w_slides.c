@@ -252,6 +252,21 @@ get_first_slide(slides_t slides) {
   return first_slide;
 }
 
+/* Returns the first slide in the last range of slides in SLIDES
+   Example 1: if slides is 1-3,5-8,9- this returns 5
+   Example 2: if slides is 1-3        this returns 1
+   Example 3: if slides is 1-3,5-8    this returns 5 */
+int get_beginning_of_last_range(slides_t slides) {
+  int last_set = get_last_slide(slides);
+  for (int slide = last_set; slide >= FIRST_SLIDE; --slide) {
+    if (!is_slide_set(slides, slide))
+      return slide+1;
+  }
+  return FIRST_SLIDE;
+
+}
+
+
 /* Swap SLIDE1 and SLIDE2 */
 void
 slide_swap(slides_t slides, int slide1, int slide2)
