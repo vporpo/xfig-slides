@@ -336,23 +336,34 @@ get_slides_line(char *buf)
 
 /* Print-append range FROM_SLIDE-TO_SLIDE to SLIDES_EDIT_STR. */
 static void
-append_range_to_str(char *slides_edit_str, int from_slide, int to_slide)
+append_range_to_str(char *slides_edit_str, int from_slide, int to_slide,
+                    Bool is_last_unbounded)
 {
   char tmp[MAX_SLIDES_STR];
   /* We don't need a range since FROM-TO too close */
   if (to_slide == from_slide) {
-    snprintf(tmp, MAX_SLIDES_STR, "%d,", to_slide);
+    if (is_last_unbounded)
+      snprintf(tmp, MAX_SLIDES_STR, "%d-", to_slide);
+    else
+      snprintf(tmp, MAX_SLIDES_STR, "%d,", to_slide);
   } else if (to_slide == from_slide + 1) {
-    snprintf(tmp, MAX_SLIDES_STR, "%d,%d,", from_slide, to_slide);
+    if (is_last_unbounded)
+      snprintf(tmp, MAX_SLIDES_STR, "%d-", from_slide);
+    else
+      snprintf(tmp, MAX_SLIDES_STR, "%d,%d,", from_slide, to_slide);
   /* We generate the FROM-TO range */
   } else {
-    snprintf(tmp, MAX_SLIDES_STR, "%d-%d,", from_slide, to_slide);
+    if (is_last_unbounded)
+      snprintf(tmp, MAX_SLIDES_STR, "%d-,", from_slide);
+    else
+      snprintf(tmp, MAX_SLIDES_STR, "%d-%d,", from_slide, to_slide);
   }
   strcat(slides_edit_str, tmp);
 }
 
 /* Returns a string representation of SLIDES.
-   It is used in the edit dialogue box. */
+   It is used in the edit dialogue box.
+   This is the opposite of parse_slides_str(). */
 char *
 slides_to_str(slides_t slides, const char *prefix)
 {
@@ -381,14 +392,19 @@ slides_to_str(slides_t slides, const char *prefix)
     /* 2. We reached the end of the range.
           Current slide is not in range. Print range collected so far. */
     if (slide != last_slide + 1 && last_slide != NULL_SLIDE) {
-      append_range_to_str(slides_edit_str, from_slide, to_slide);
+      append_range_to_str(slides_edit_str, from_slide, to_slide, False);
       from_slide = slide;
       to_slide = slide;
     }
     last_slide = slide;
   }
   /* We need to print the last range we collected. */
-  append_range_to_str(slides_edit_str, from_slide, to_slide);
+
+  /* If the upper boundary of the range is the last used slide
+     and this slide is unbounded, then */
+  Bool is_last_unbounded = slides->is_unbounded
+    && to_slide == get_last_used_slide();
+  append_range_to_str(slides_edit_str, from_slide, to_slide, is_last_unbounded);
   /* Finalize with end-of-string */
   strcat(slides_edit_str, "\0");
 
@@ -1370,6 +1386,11 @@ parse_slides_str(char *buf)
 {
   slides_t slides = get_new_slides();
   char *saveptr;
+  /* Replace trailing '\n' with ',' */
+  int last_idx = strlen(buf)-1;
+  if (buf[last_idx] == '\n')
+    buf[last_idx] = ',';
+
   char *token = strtok_r(buf, ",", &saveptr);
   while (token) {
     /* Found end of slides, return */
