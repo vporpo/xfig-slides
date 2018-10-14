@@ -118,7 +118,7 @@ extern Boolean has_next_slide(int slide_i);
   for (I = FIRST_SLIDE; I <= LAST_SLIDE; I++)
 
 #define FOR_EACH_SLIDE_I_REV(I)                   \
-  for (I = LAST_SLIDES; I >= FIRST_SLIDE; I--)
+  for (I = LAST_SLIDE; I >= FIRST_SLIDE; I--)
 
 #define FOR_EACH_SLIDE_I_UNTIL(I, UNTIL)        \
   for (I = FIRST_SLIDE; I < UNTIL; I++)
@@ -318,6 +318,9 @@ extern void undo_del_slide(void);
 extern void undo_kut_slides(void);
 extern void undo_kut_merge(void);
 extern void undo_kick_slides(void);
+
+extern void write_slides(FILE *fp, slides_t slides);
+
 
 #endif  /* SLIDES_SUPPORT */
 #endif

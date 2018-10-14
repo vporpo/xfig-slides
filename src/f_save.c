@@ -302,42 +302,6 @@ void write_colordefs(FILE *fp)
 	fprintf(fp, "}\n");
 }
 
-#ifdef SLIDES_SUPPORT
-static void
-write_slides(FILE *fp, slides_t slides)
-{
-  /* This means that we are generating individual .fig files, one for each slide
-     therefore don't emit the slide numbers.  */
-  if (! emit_all_slides) {
-    return;
-  }
-
-  /* Don't write any slide data if we only have a single slide */
-  if (num_of_used_slides() <= 1) {
-    return;
-  }
-
-  char *com = slides_to_str(slides, SLIDES_PREFIX);
-  if (!com) {
-    return;
-  }
-
-  char last;
-  while (*com) {
-    last = *com;
-    fputc(*com, fp);
-    if (*com == '\n' && *(com+1) != '\0') {
-      assert(0 && "No new lines in slides");
-    }
-    com++;
-  }
-  /* add newline if last line of comment didn't have one */
-  if (last != '\n') {
-    fputc('\n',fp);
-  }
-}
-#endif
-
 void write_arc(FILE *fp, F_arc *a)
 {
     /* any comments first */

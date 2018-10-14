@@ -485,6 +485,24 @@ all_slides_append_accum(void *obj, int type, int cnt, void *extra)
   }
 }
 
+void update_unbounded_bits(void *obj, int type, int cnt, void *extra)
+{
+  slides_t sl;
+  /* sl=obj->slides */
+  SET_TO_OBJ_ATTR(sl, obj, type, slides)
+
+  int i;
+  slides_t slides = sl;
+  if (slides == NULL || !slides->is_unbounded) {
+    return;
+  }
+  FOR_EACH_USED_SLIDE_REVERSE(i) {
+    if (is_slide_set(slides, i))
+      return;
+    slide_set(slides, i, True);
+  }
+}
+
 /* Collect all the slide info and write it to ALL_SLIDES
    This is used regularly to keep the slides state up to date */
 void
@@ -522,6 +540,10 @@ collect_all_slides_info(void)
 
   /* Update all_slides.num_active*/
   all_slides.num_active = cnt_active;
+
+  /* Fill in all missing slide bits for unbounded objects */
+  for_all_objects_do(update_unbounded_bits, NULL, True);
+
 }
 
 /* Return the last selected slide.
@@ -3370,7 +3392,40 @@ save_slide_files(void)
   emit_all_slides = sv_emit_all_slides;
 }
 
+/* This writes SLIDES to FP. It gets called by f_save.c */
+void
+write_slides(FILE *fp, slides_t slides)
+{
+  /* This means that we are generating individual .fig files, one for each slide
+     therefore don't emit the slide numbers.  */
+  if (! emit_all_slides) {
+    return;
+  }
 
+  /* Don't write any slide data if we only have a single slide */
+  if (num_of_used_slides() <= 1) {
+    return;
+  }
+
+  char *com = slides_to_str(slides, SLIDES_PREFIX);
+  if (!com) {
+    return;
+  }
+
+  char last;
+  while (*com) {
+    last = *com;
+    fputc(*com, fp);
+    if (*com == '\n' && *(com+1) != '\0') {
+      assert(0 && "No new lines in slides");
+    }
+    com++;
+  }
+  /* add newline if last line of comment didn't have one */
+  if (last != '\n') {
+    fputc('\n',fp);
+  }
+}
 
 /* Global variables */
 slides_t cur_slides; /* w_indpanel.c */
