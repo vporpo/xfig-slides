@@ -724,9 +724,7 @@ create_compound(void)
     c->splines = NULL;
     c->texts = NULL;
     c->comments = NULL;
-    #ifndef SLIDES_SUPPORT
     c->parent = NULL;
-    #endif
     c->GABPtr = NULL;
     c->next = NULL;
     #ifdef SLIDES_SUPPORT
