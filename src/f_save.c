@@ -455,7 +455,10 @@ void write_line(FILE *fp, F_line *l)
     /* any comments first */
     write_comments(fp, l->comments);
 #ifdef SLIDES_SUPPORT
+    Boolean sv_emit_all_slides = emit_all_slides;
+    emit_all_slides = True;
     write_slides(fp, l->slides);
+    emit_all_slides = sv_emit_all_slides;
 #endif
 
     /* count number of points and put it in the object */
