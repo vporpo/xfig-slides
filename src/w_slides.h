@@ -105,7 +105,7 @@ struct all_slides_
   /* count the checked slides */
   int active_cnt;
 };
-struct all_slides_ all_slides;
+extern struct all_slides_ all_slides;
 
 extern int get_bitmap_idx(int slide_i);
 extern Boolean is_slide_active(int slide_i); /* accum */

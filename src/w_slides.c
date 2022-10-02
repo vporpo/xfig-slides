@@ -1480,6 +1480,8 @@ check_missing_slide_file(void)
 /*          SIDE PANEL         */
 /* *************************** */
 
+struct all_slides_ all_slides;
+
 int
 get_bitmap_idx(int slide_i) {
   return slide_i - FIRST_SLIDE;
