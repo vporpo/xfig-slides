@@ -24,6 +24,7 @@
 #include "figx.h"
 #include <assert.h>
 #include <w_setup.h>
+#include <config.h>
 
 /* cyclic dependency F_comound, slides_t */
 typedef struct slides_ *slides_t;
@@ -42,7 +43,7 @@ typedef struct f_compound F_compound;
 #define MAX_SLIDES_MSG 16284
 #define MAX_SLIDES_STR MAX_SLIDES*5
 /* The first and last slide allowed */
-#define FIRST_SLIDE 1
+#define FIRST_SLIDE XFIG_SLIDES_FIRST_SLIDE
 #define LAST_SLIDE (FIRST_SLIDE + MAX_SLIDES - 1)
 
 #define NULL_SLIDE -1

@@ -218,6 +218,9 @@
 /* Define to use version Xaw3d >= 1.5e. */
 #undef XAW3D1_5E
 
+/* Define the number of the first slide in xfig-slides. */
+#undef XFIG_SLIDES_FIRST_SLIDE
+
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
 

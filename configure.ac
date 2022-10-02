@@ -361,6 +361,14 @@ AC_SUBST([SLIDES_KEYS_0])
 AC_SUBST([SLIDES_KEYS_1])
 AC_SUBST([SLIDES_KEYS_2])
 AC_SUBST([SLIDES_KEYS_3])
+
+dnl This adds a configure option to set the slide number of the first slide.
+AC_ARG_WITH(first-slide, [AS_HELP_STRING([--with-first-slide=<int>],
+	[Overrides the number of the first slide. This is for compatibility with \
+  older .fig files, as it used to be 0. (default: 1)])],
+    [], [withval=1])dnl
+AC_DEFINE_UNQUOTED([XFIG_SLIDES_FIRST_SLIDE], [$withval],
+    [Define the number of the first slide in xfig-slides.])dnl
 dnl SLIDES END
 
 
