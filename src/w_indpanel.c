@@ -5030,7 +5030,7 @@ show_slides(ind_sw_info *sw)
   int slides_num = all_slides.num_active;
   char *update_slides_str = slides_to_str(cur_slides, "");
   put_msg ("Slides (%d found): %s", slides_num, update_slides_str);
-  sprintf (indbuf, "%-40s", update_slides_str);
+  sprintf (indbuf, "%-29s", update_slides_str);
   update_string_pixmap(sw, indbuf,3,28);
 }
 #endif
